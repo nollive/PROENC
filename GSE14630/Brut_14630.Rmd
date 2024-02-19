@@ -442,7 +442,7 @@ View(full_results)
 
 ```{r}
 library(ggplot2)
-ggplot(full_results,aes(x = logFC, y=2^B)) + geom_point()
+ggplot(full_results,aes(x = logFC, y=-log10(adj.P.Val)) + geom_point()
 ```
 
 
@@ -454,7 +454,7 @@ fc_cutoff <- 1 #IDEM
 
 full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = 2^B, col=Significant)) + geom_point()
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
 ```
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 
@@ -467,7 +467,7 @@ topN <- 20 #Nombre de genes affichés sur le graphe
 full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = 2^B, col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 ```
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
 ```{r}
@@ -476,7 +476,7 @@ my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2",
 full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
   mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = 2^B, col = Significant, label = Label)) + 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
   geom_point() + 
   geom_text_repel(col = "black", max.overlaps = 20)
 
