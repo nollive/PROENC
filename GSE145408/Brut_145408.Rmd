@@ -49,29 +49,23 @@ filePaths = getGEOSuppFiles(my_id)
 ```
 
 
-```{r}
-
-wd <- paste0(wd_a,my_id,"/",my_id,"_RAW")
-
-#setwd(wd)
-knitr::opts_chunk$set(root.dir = wd)
-write.table(matrix(dir()),file="a-list-files.txt", sep="\t")
-```
-
 
 ```{r eval=false}
 ### Import data ----
-#Reads targets
-knitr::opts_chunk$set(root.dir = wd)
 
+#Lecture du fichier Target
 file_pheno_xlsx <-paste0(my_id,"_Target.xlsx")
 file_pheno <- paste0(my_id,"_Target.txt")
 
-data <- read_excel(paste0(wd,"/",file_pheno_xlsx))
+data <- read_excel(paste0(wd_a,my_id,"/",file_pheno_xlsx))
 
 write.table(data, file = file_pheno, sep = "\t", row.names = TRUE)
 pheno <- read.table(file = file_pheno, header = TRUE, sep = "\t", row.names = 1)
+
 pd <-read.AnnotatedDataFrame(file = file_pheno,row.names = 1, header=TRUE,as.is=TRUE, sep = "\t")
+
+pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Time", "Group_short","Description", "File"))
+
 # Iterate through each column of pd
 for (col in colnames(pd)) {
   # Remove double quotes from the column
@@ -80,13 +74,23 @@ for (col in colnames(pd)) {
 
 ```
 
+```{r}
+#Changement de wd (besoin d'extraire le fichier RAW)
+wd <- paste0(wd_a,my_id,"/",my_id,"_RAW")
+df1 <- getGSEDataTables #??
+
+
+knitr::opts_chunk$set(root.dir = wd)
+write.table(matrix(dir()),file="a-list-files.txt", sep="\t")
+```
+
 
 ```{r}
 #Reads CEL files
 library(oligo)
 
 
-rawAffyData <- read.celfiles(filenames = pData(pd)$X.File., phenoData = pd)
+rawAffyData <- read.celfiles(filenames = pData(pd)$File, phenoData = pd)
 
 
 exprs(rawAffyData)[1:4,1:3]

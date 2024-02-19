@@ -47,6 +47,31 @@ my_id = "GSE14630"
 filePaths = getGEOSuppFiles(my_id)
 ```
 
+
+```{r eval=false}
+### Import data ----
+
+#Lecture du fichier Target
+file_pheno_xlsx <-paste0(my_id,"_Target.xlsx")
+file_pheno <- paste0(my_id,"_Target.txt")
+
+data <- read_excel(paste0(wd_a,my_id,"/",file_pheno_xlsx))
+
+write.table(data, file = file_pheno, sep = "\t", row.names = TRUE)
+pheno <- read.table(file = file_pheno, header = TRUE, sep = "\t", row.names = 1)
+
+pd <-read.AnnotatedDataFrame(file = file_pheno,row.names = 1, header=TRUE,as.is=TRUE, sep = "\t")
+
+pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Time", "Group_short", "Description", "File"))
+
+# Iterate through each column of pd
+for (col in colnames(pd)) {
+  # Remove double quotes from the column
+  pd[[col]] <- gsub("\"", "", pd[[col]])
+}
+
+```
+
 ```{r}
 #Changement de wd (besoin d'extraire le fichier RAW)
 wd <- paste0(wd_a,my_id,"/",my_id,"_RAW")
@@ -57,40 +82,12 @@ knitr::opts_chunk$set(root.dir = wd)
 write.table(matrix(dir()),file="a-list-files.txt", sep="\t")
 ```
 
-
-```{r eval=false}
-### Import data ----
-#Reads targets
-knitr::opts_chunk$set(root.dir = wd)
-
-#Lecture du fichier Target
-file_pheno_xlsx <-paste0(my_id,"_Target.xlsx")
-file_pheno <- paste0(my_id,"_Target.txt")
-
-data <- read_excel(paste0(wd,"/",file_pheno_xlsx))
-
-write.table(data, file = file_pheno, sep = "\t", row.names = TRUE)
-pheno <- read.table(file = file_pheno, header = TRUE, sep = "\t", row.names = 1)
-
-pd <-read.AnnotatedDataFrame(file = file_pheno,row.names = 1, header=TRUE,as.is=TRUE, sep = "\t")
-
-pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "group", "Patient", "Time", "group_short", "description", "file", "FileName"))
-
-# Iterate through each column of pd
-for (col in colnames(pd)) {
-  # Remove double quotes from the column
-  pd[[col]] <- gsub("\"", "", pd[[col]])
-}
-
-```
-
-
 ```{r}
 #Reads CEL files
 library(oligo)
 
 # Lectures des fichiers .CEL
-rawAffyData <- read.celfiles(filenames = pData(pd)$file, phenoData = pd)
+rawAffyData <- read.celfiles(filenames = pData(pd)$File, phenoData = pd)
 
 # Vérification du bon import et première visualisation des données brutes
 exprs(rawAffyData)[1:4,1:3]
@@ -180,7 +177,7 @@ sampleInfo <- pData(data_filtr)
 colnames(sampleInfo)
 rownames(sampleInfo) <- sampleInfo$GSM
 ## Utilisation des infos contenues dans source_name_ch1 et characteristics_ch1.1 
-sampleInfo <- dplyr::select(sampleInfo, Patient,Time,group_short,group,description,GSM) 
+sampleInfo <- dplyr::select(sampleInfo, Patient,Time,Group_short,Group,Description,GSM) 
 
 ## Si jamais on a besoin de renommer nos variables (plus lisible)
 #sampleInfo <- dplyr::rename(sampleInfo,group = source_name_ch1, patient=characteristics_ch1)
@@ -204,11 +201,11 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 #Affichaque de la heatmap
 pheatmap(corMatrix,
-         annotation_col=sampleInfo[, c("group_short", "Time")])    #-2 pour enlever colonne texte
+         annotation_col=sampleInfo[, c("Group_short", "Time")])    #-2 pour enlever colonne texte
 
 
 # Supprimer les colonnes non nécessaires de sampleInfo
-annotations <- sampleInfo[, c("group_short", "Time")]
+annotations <- sampleInfo[, c("Group_short", "Time")]
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
 
