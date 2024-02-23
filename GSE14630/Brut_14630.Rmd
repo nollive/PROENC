@@ -52,7 +52,7 @@ wd_a <- "/Users/olivier/Desktop/Projet/Test/"
 knitr::opts_chunk$set(root.dir = wd_a)
  # Accessing Raw Data from GEO:
 my_id = "GSE14630"
-#filePaths = getGEOSuppFiles(my_id)
+filePaths = getGEOSuppFiles(my_id)
 ```
 
 
