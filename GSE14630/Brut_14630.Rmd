@@ -43,9 +43,6 @@ library("pd.huex.1.0.st.v2")
 #library("hgu133plus2.db")
 #library(hugene10stv1cdf)
 library(hgu133a.db)
-
-
-
 ```
 
 
