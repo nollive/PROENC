@@ -259,8 +259,8 @@ View(design_data)
 
 ##Création de la matrice de design 
 # ici on confronte les 5 patients à T0 qui vont changer de traitement au nouveau traitement à T1 (T0+3mois)
-design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
-
+#design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
+design <- model.matrix(~0+ Treatment, data = design_data) 
 # Afficher la matrice de design
 print(design)
 ```
@@ -309,8 +309,12 @@ head(fit$coefficients)
 
 ```{r}
 
-## Si on fait T0 contre T1
-contrasts <- makeContrasts( Comparaison=TimeT0 - TimeT1, levels = design)
+## CsA vs HV vs SRL
+contrasts <- makeContrasts(
+  TreatmentCsA-TreatmentHV, 
+  TreatmentCsA-TreatmentSRL,
+  TreatmentHV-TreatmentSRL, 
+  levels=colnames(design))
 
 # On applique nos constrasts 
 fit2 <- contrasts.fit(fit, contrasts)
