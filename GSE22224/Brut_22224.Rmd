@@ -248,9 +248,9 @@ write_csv(full_output, path="gse_full_output.csv")
 ```{r}
 # Création des données de design 
 design_data <- data.frame(
-  Patient = rep(1:5, each = 2),  # Répéter chaque patient deux fois
+  Patient = c(1:46),  # Répéter chaque patient deux fois
   GSM =  rownames(pData(data_filtr)),
-  Time = rep(c("T0", "T1"), times = 5)  # Alterner entre T0 et T1 pour chaque patient
+  Treatment = pData(data_filtr)$Treatment  # Selon le traitement
 )
 
 ## Attention, vérifier que les GSM sont dans le bon ordre !
@@ -259,7 +259,7 @@ View(design_data)
 
 ##Création de la matrice de design 
 # ici on confronte les 5 patients à T0 qui vont changer de traitement au nouveau traitement à T1 (T0+3mois)
-design <- model.matrix(~0+ Time+Patient, data = design_data) 
+design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
 
 # Afficher la matrice de design
 print(design)
