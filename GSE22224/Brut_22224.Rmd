@@ -46,7 +46,7 @@ library(hgu133a.db)
 ```
 
 
-```{r eval=false}
+```{r}
 #Data import#####
 wd_a <- "/Users/olivier/Desktop/Projet/Test/"
 knitr::opts_chunk$set(root.dir = wd_a)
@@ -56,7 +56,7 @@ my_id = "GSE22224"
 ```
 
 
-```{r eval=false}
+```{r}
 ### Import data ----
 
 #Lecture du fichier Target
@@ -144,11 +144,11 @@ dim(data_filtr)
 dim(eset)
 
 #Rassemble tout dans un dataset
-toto <- cbind(fData(data_filtr), exprs(data_filtr))
-dim(toto)
+concat <- cbind(fData(data_filtr), exprs(data_filtr))
+dim(concat)
 
 #Export des données d'expression
-#write.table(toto, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
+#write.table(concat, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
 
 
 ##enlever gene sans Symbol: #### -> Mauvaise annotation
@@ -202,6 +202,7 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 # Supprimer les colonnes non nécessaires de sampleInfo
 annotations <- sampleInfo[, c("Patient", "Treatment")]
+
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
 
@@ -212,8 +213,17 @@ corMatrix_ordered <- corMatrix[order_rows, order_rows]
 pheatmap(corMatrix_ordered, annotation_col = annotations)
 ```
 
-# Export
+## Suppression des outliers
+```{r}
+#On remarque que le GSM553485 (HV), GSM553459 (CsA), GSM553458 (SRL) sont peu correlés aux restes des échantillons (probablement du à un effet batch, on décide de faire notre analse avec et sans ces samples.
 
+GSM_outliers <- c("GSM553485", "GSM553459" , "GSM553458")
+data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
+pheatmap(corMatrix_outliers)
+```
+
+# Export
 ```{r eval=false}
 #full_output <- cbind(fData(data_filtr),exprs(data_filtr))
 #write_csv(full_output, path="gse_full_output.csv")
@@ -291,9 +301,6 @@ pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 
 
 
-
-
-
 ## Etablissement de la différential expression
 
 # lmFit
@@ -310,13 +317,13 @@ head(fit$coefficients)
 ```{r}
 
 ## CsA vs HV vs SRL
-contrasts <- makeContrasts(
-  TreatmentCsA-TreatmentHV, 
-  TreatmentCsA-TreatmentSRL,
-  TreatmentHV-TreatmentSRL, 
-  levels=colnames(design))
+contrasts <- makeContrasts(EffetCsA=   TreatmentCsA-TreatmentHV,
+                           DiffTrtmt=   TreatmentCsA-TreatmentSRL, 
+                           EffetSRL = TreatmentHV-TreatmentSRL,
+                           levels=colnames(design))
 
 # On applique nos constrasts 
+
 fit2 <- contrasts.fit(fit, contrasts)
 fit2
 
@@ -328,13 +335,16 @@ fit2 <- eBayes(fit2)
 
 # Résultats avec topTable
 topTable(fit2)
+comparisonCSA = "EffetCsA"
+topTable(fit2, coef=comparisonCSA, adjust.method="BH")
+comparisonSRL = "EffetSRL"
+topTable(fit2, coef=comparisonSRL, adjust.method="BH")
+comparisonDIFF = "DiffTrtmt"
+topTable(fit2, coef=comparisonDIFF, adjust.method="BH")
 
-### pour voir les second constratst (si ils existtent? chaque individu T0 et T1??)
-## topTable(fit2, coef=2)
 
 #decideTests donne cb de genes sont differentially expressed
 decideTests(fit2)
-
 table(decideTests(fit2))
 ```
 
@@ -347,50 +357,104 @@ summary(topTable(fit2))
 ```
 
 ```{r}
-full_results <- topTable(fit2, number=Inf)
-full_results <- tibble::rownames_to_column(full_results,"ID")
-View(full_results)
+#full_results <- topTable(fit2, number=Inf)
+full_results_CSA <- topTable(fit2, coef=comparisonCSA, adjust.method="BH", number=Inf)
+full_results_SRL <- topTable(fit2, coef=comparisonSRL, adjust.method="BH", number=Inf)
+full_results_DIFF <- topTable(fit2, coef=comparisonDIFF, adjust.method="BH", number=Inf)
+
+full_results_CSA <- tibble::rownames_to_column(full_results_CSA,"ID")
+full_results_SRL <- tibble::rownames_to_column(full_results_SRL,"ID")
+full_results_DIFF <- tibble::rownames_to_column(full_results_DIFF,"ID")
+#full_results <- tibble::rownames_to_column(full_results,"ID")
+
+View(full_results_CSA)
+#View(full_results)
 ```
 
-```{r}
-ggplot(full_results,aes(x = logFC, y= -log10(adj.P.Val))) + geom_point()
-```
-
-
+## Affichage des volcano plots
 ```{r}
 p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
 fc_cutoff <- 1 #IDEM
+```
 
-#Problèmes car aucune significative???? (essais sans les poids???)
-
-full_results %>% 
+## CSA vs HV
+```{r}
+full_results_CSA %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
 ```
+## SRL vs HV
+```{r}
+full_results_SRL %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+```
+
+## CSA vs SRL
+```{r}
+full_results_DIFF %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+```
+
+
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
+```{r}
+topN <- 20 #Nombre de genes affichés sur le graphe
+```
+
 
 ```{r}
-p_cutoff <- 0.05
-fc_cutoff <- 1
-topN <- 20 #Nombre de genes affichés sur le graphe
+#CSA vs HV
+full_results_CSA %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
-full_results %>% 
+#SRL vs HV
+full_results_SRL %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+
+#CSA VS SRL
+full_results_DIFF %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 ```
+
+
+
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
 ```{r}
 my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+```
 
-full_results %>% 
+```{r}
+#CSA vs HV
+full_results_CSA %>% 
   mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
   mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
   geom_point() + 
   geom_text_repel(col = "black", max.overlaps = 20)
 
-#Problèmes --> non affichés??
+#SRL vs HV
+full_results_SRL %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
+  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  geom_point() + 
+  geom_text_repel(col = "black", max.overlaps = 20)
+
+#CSA vs SRL
+full_results_DIFF %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
+  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  geom_point() + 
+  geom_text_repel(col = "black", max.overlaps = 20)
 ```
 
 ## Filter selon pvalue ajustée?? (a faire)
@@ -400,7 +464,6 @@ full_results %>%
 #fc_cutoff <- 1
 #filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
 ```
-
 
 
 # Export avec write_csv (filtrer ceux significatifs)
@@ -435,6 +498,7 @@ gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
 ##Affichage de la heatmpa des topN genes
 pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
+     annotation_col= annotations,
      scale="row")
 
 #PROBLEME MANQUE DEUX NOM DE GENES????
