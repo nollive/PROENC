@@ -1,0 +1,533 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r eval=false}
+#Library####
+library(GEOquery)
+library("annotate")
+library("heatmap3")
+library("Biobase")
+library("tools")
+library("AnnotationDbi")
+library("annotate")
+library("heatmap3")
+library(RColorBrewer)
+library("ade4")
+library("ALL")
+library("gplots")
+library(ggplot2)
+library("ALL")
+library("ade4")
+#library("mixOmics")
+library("RVAideMemoire")
+library(limma)
+library("affy")
+library("pd.huex.1.0.st.v2")
+#library("hugene10sttranscriptcluster")
+#library("huex10sttranscriptcluster.db")
+library('gcrma')
+library(oligo)
+#library(hugene10stv1cdf)
+library(dplyr)
+#library("hgu133plus2.db")
+
+
+
+```
+
+
+```{r eval=false}
+library(readxl)
+library(GEOquery)
+#Data import#####
+wd_a <- "/Users/olivier/Desktop/Projet/Test/"
+knitr::opts_chunk$set(root.dir = wd_a)
+ # Accessing Raw Data from GEO:
+my_id = "GSE1743"
+filePaths = getGEOSuppFiles(my_id)
+```
+
+
+```{r eval=false}
+### Import data ----
+my_id <- "GSE1743"
+gse_brut <- getGEO(my_id)
+
+#Changement de wd (besoin d'extraire le fichier RAW)
+wd <- paste0(wd_a,my_id,"/",my_id,"_RAW")
+df1 <- getGSEDataTables #??
+knitr::opts_chunk$set(root.dir = wd)
+
+
+## Combien de plateformes utilisées pour GSE
+length(gse_brut)
+gse_brut <- gse_brut[[1]] #Si plusieurs dataset dans le gse, normalement un seul
+```
+
+```{r}
+pData(gse_brut) ## sample information
+fData(gse_brut) ## gene annotation, pour les nom des variables
+head(exprs(gse_brut)) ## expression data
+```
+
+```{r}
+## Check exprs(gse) pour voir si les données sont en log2 (i.e. entre 0 et 16)
+summary(exprs(gse_brut))
+
+#Si pas en échelle log2
+exprs(gse) <- log2(exprs(gse_brut))
+summary(exprs(gse))
+boxplot(exprs(gse),outline=FALSE)
+```
+```{r}
+sampleInfo <- pData(gse)
+colnames(sampleInfo)
+
+## Utilisation des infos contenues dans source_name_ch1 et description
+sampleInfo <- dplyr::select(sampleInfo,geo_accession, title, description)
+
+## Si jamais on a besoin de renommer nos variables (plus lisible)
+sampleInfo <- dplyr::rename(sampleInfo, GSM = geo_accession, Patient = title, Group = description)
+
+#On rajoute Group_short pour un meilleur affichage lors des heatmap (uniquement Cyclosporine ou Sirolimus)
+sampleInfo$Group_short <- gsub(".*(CYCLOSPORINE|SIROLIMUS).*", "\\1", sampleInfo$Group)
+
+# Afficher les premières lignes pour vérification
+head(sampleInfo)
+
+View(sampleInfo)
+```
+
+
+```{r}
+
+# Vérification de la bonne annotation
+geneName = "GAPDH"
+which(fData(gse)$"Gene Symbol" == geneName )
+#head(fData(gse))
+
+# filtration:
+eset_medians <- rowMedians(Biobase::exprs(gse))
+hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
+                 main = "Histogram of the median intensities", 
+                 border = "antiquewhite4",
+                 xlab = "Median intensities")
+median(eset_medians)
+man_threshold =median(eset_medians)
+abline(v = median(eset_medians), col = "grey", lwd = 2)
+abline(v = man_threshold, col = "coral4", lwd = 2)
+
+length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
+
+#Filtration selon la médiane d'expression (enleve aussi les NA)
+data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$geo_accession
+dim(data_filtr)
+dim(gse)
+
+#Rassemble tout dans un dataset
+total <- cbind(fData(data_filtr), exprs(data_filtr))
+dim(total)
+
+#Export des données d'expression
+#write.table(total, file=paste0("Données d'expression du ",gse_id), sep="\t")
+
+# Suppression des genes mal annotés -> ne fonctionne pas pour l'instant
+length(which(is.na(fData(data_filtr)$"Gene Symbol")))
+index <- which(is.na(fData(data_filtr)$"Gene Symbol"))
+sansNA <- data_filtr[-index, ]
+length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
+dim(sansNA)
+dim(data_filtr)
+
+sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
+hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
+                 main = "Histogram of the median intensities", 
+                 border = "antiquewhite4",
+                 xlab = "Median intensities")
+##### END import #####
+
+```
+## Analyse
+```{r}
+library(limma)
+library(readr)
+
+summary(exprs(data_filtr))
+boxplot(exprs(data_filtr),outline=FALSE)
+```
+
+
+# Heatmap entre GSM
+```{r}
+library(pheatmap)
+
+#Calcul de la matrice de correlation d'expression des gènes pour chaque GSM (étude de correlation entre les samples)
+corMatrix <- cor(exprs(data_filtr),use="c")
+
+## Vérifier que les colonnes de sampleInfo et corMatrix soient identiques
+rownames(sampleInfo)
+colnames(corMatrix)
+
+## Sinon, on peut forcer avec le code suivant
+rownames(sampleInfo) <- colnames(corMatrix)
+
+
+# Création de notre vecteur annotations pour les heatmaps
+annotations <- sampleInfo[, c("Group_short", "Patient")]
+
+#Affichaque de la heatmap
+pheatmap(corMatrix,
+         annotation_col=annotations)    
+
+# Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
+order_rows <- order(sampleInfo$GSM)
+
+# Réorganiser les lignes de la matrice de corrélation
+corMatrix_ordered <- corMatrix[order_rows, order_rows]
+
+# Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
+pheatmap(corMatrix_ordered, annotation_col = annotations)
+```
+# Export
+```{r eval=false}
+#library(readr)
+#full_output <- cbind(fData(data_filtr),exprs(data_filtr))
+#write_csv(full_output, path="gse_full_output.csv")
+```
+
+# Définition de nos features (et modification des noms de features si besoin (selon version de puces))
+```{r}
+
+#Import de features à partir des données fData
+features <- fData(data_filtr)
+colnames(features)
+
+## Pour garder que certaines features
+features <- dplyr::select(features,"Gene Symbol","Gene Title","ENTREZ_GENE_ID")
+
+#Renommer les features (pour visualisation ensuite, il faut enlever les espaces)
+features <- features %>% 
+  rename(GENE_SYMBOL = `Gene Symbol`,
+         GENE_TITLE = `Gene Title`)
+
+#Affichage de features
+View(features)
+
+#Export des features
+full_output <- cbind(features,exprs(data_filtr))
+write_csv(full_output, path="gse_full_output.csv")
+```
+
+
+## Differential Expression
+
+# Création de notre matrice design et constrast
+```{r}
+##Création de la matrice de design 
+# ici on confronte les 22 individus sous cyclosporine et les 19 individus sous sirolimus
+design <- model.matrix(~0+ Group_short, data = sampleInfo) 
+
+
+# Afficher la matrice de design
+print(design)
+```
+
+# ACP
+```{r}
+## Attention à bien avoir transposé la matrice d'expression sinon PCA en fonction des individus et non de l'expression des genes
+
+#PCA classique
+pca <- prcomp(t(exprs(data_filtr)))
+
+##Rajouter les informations des patients
+cbind(sampleInfo, pca$x) %>% 
+ggplot(aes(x = PC1, y=PC2, col=Group_short,label=paste("Patient", Patient))) + 
+  geom_point() + 
+  geom_text_repel()
+```
+
+
+```{r}
+#PCA en utilisant FactoMineR
+library(FactoMineR)
+#Calcul de l'ACP avec FactomineR
+pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+```
+
+
+## Etablissement de la différential expression
+
+# lmFit
+```{r}
+fit <- lmFit(exprs(data_filtr), design)
+
+#Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
+head(fit$coefficients)
+```
+
+
+#Définition de nos contrasts pour la differencial expression
+
+```{r}
+
+## Si on fait T0 contre T1
+contrasts <- makeContrasts( Comparaison=Group_shortCYCLOSPORINE - Group_shortSIROLIMUS, levels = design)
+
+# On applique nos constrasts 
+fit2 <- contrasts.fit(fit, contrasts)
+fit2
+
+```
+
+# On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
+```{r}
+fit2 <- eBayes(fit2)
+
+# Résultats avec topTable
+topTable(fit2)
+
+### pour voir les second constratst (si ils existtent? chaque individu T0 et T1??)
+## topTable(fit2, coef=2)
+
+#decideTests donne cb de genes sont differentially expressed
+decideTests(fit2)
+
+table(decideTests(fit2))
+```
+
+
+# Visualisation des resultat de la differencial expression
+
+# Visualisation des resultat de la differencial expression
+
+```{r}
+fit2$genes <- features
+summary(topTable(fit2))
+```
+
+```{r}
+full_results <- topTable(fit2, number=Inf)
+full_results <- tibble::rownames_to_column(full_results,"ID")
+View(full_results)
+```
+
+```{r}
+ggplot(full_results,aes(x = logFC, y= -log10(adj.P.Val))) + geom_point()
+```
+
+
+```{r}
+p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
+fc_cutoff <- 1 #IDEM
+
+#Problèmes car aucune significative???? (essais sans les poids???)
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+```
+## Affichage des 20 gènes ayant leur expression la plus modifiée
+
+```{r}
+p_cutoff <- 0.05
+fc_cutoff <- 1
+topN <- 20 #Nombre de genes affichés sur le graphe
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+```
+## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
+```{r}
+my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
+  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  geom_point() + 
+  geom_text_repel(col = "black", max.overlaps = 20)
+
+#Problèmes --> non affichés??
+```
+
+## Filter selon pvalue ajustée?? (a faire)
+
+```{r}
+#p_cutoff <- 0.05
+#fc_cutoff <- 1
+#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
+```
+
+
+
+# Export avec write_csv (filtrer ceux significatifs)
+
+```{r}
+#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+ # write_csv(path="filtered_de_results.csv")
+```
+
+
+### Autre visualisation (Heatmaps)
+
+
+# Heatmap des 20 genes les plus significatifs
+```{r}
+## Top N genes
+
+topN <- 20
+##
+top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(ID)
+
+#On recupère le nom des top 20 genes
+top_gene_names <- mutate(full_results, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(GENE_SYMBOL) 
+
+## Recupere les expressions des genes d'interet
+gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+
+##Affichage de la heatmpa des topN genes
+pheatmap(gene_matrix_top,
+     labels_row = top_gene_names,
+     scale="row",
+     annotation = annotations)
+
+#PROBLEME MANQUE DEUX NOM DE GENES????
+```
+
+
+### Heatmap 20 genes de la tolérance (BARON)
+
+```{r}
+#20 GENES (BARON 2015)
+Baron_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+
+Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(ID)
+
+Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(GENE_SYMBOL)
+
+Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+
+#Affichage
+rownames(sampleInfo) <- colnames(Baron_gene_matrix)
+pheatmap(Baron_gene_matrix,
+         labels_row = Baron_gene_names,
+         annotation_col= annotations,
+         scale="row")
+```
+
+
+```{r}
+
+#6 GENES (DANGER 2017)
+Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
+#my_genes <- c("MS4A1", "BANK1")
+#my_genes <- c("CD40","ID3", "MZB1", "TCL1A") #CTLA4/AKR1C3 marche pas??
+
+Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(ID)
+
+Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(GENE_SYMBOL)
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Danger_gene_matrix)
+Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+
+
+pheatmap(Danger_gene_matrix,
+         labels_row = Danger_gene_names,
+         annotation_col= annotations,
+         scale="row")
+```
+
+# Gene Ontology Term Enrichment analysis
+```{r}
+############# GO analysis ###########################
+#library("clusterProfiler")
+library(org.Hs.eg.db)
+library(DOSE)
+# on rapelle que p_cutoff <- 0.05 
+# et fc_cutoff <- 1 
+
+
+DiffGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & abs(full_results$logFC) > fc_cutoff, ]
+dim(DiffGenes)
+UpGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC > fc_cutoff, ]
+dim(UpGenes)
+DownGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC < -fc_cutoff, ]
+dim(DownGenes)
+
+DiffGenesSymb <- DiffGenes$ID
+length(DiffGenesSymb)
+UpGenesSymb <- UpGenes$ID
+DownGenesSymb <- DownGenes$ID
+geneList <- data$genes$geneName
+length(geneList)
+
+keytypes(org.Hs.eg.db)
+
+
+ego <- enrichGO(gene         = UpGenesSymb,
+                universe = geneList,
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.5,
+                qvalueCutoff  = 0.5,
+                minGSSize=5)
+
+head(ego)
+dim(ego)
+data.frame(ego)
+
+
+SelGO <- ego[which(ego$p.adjust  < 0.05 & ego$Count > 5),]
+
+barplot(ego)
+barplot(ego, showCategory= dim(SelGO)[1] )
+barplot(ego, showCategory= 10)
+
+write.table(data.frame(ego), file =paste("c-GO-", comparison, "-Down_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+
+ego2 <- clusterProfiler::simplify(ego, cutoff=0.8, by="p.adjust", select_fun=min)
+barplot(ego2)
+
+jpeg(paste("h-GO-UP", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+dev.off()
+#plotGOgraph(ego)
+upsetplot(ego)
+#cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+
+
+
+heatplot(ego, showCategory = 25) #, foldChange = DiffGenes$logFC)
+heatplot(ego,showCategory = 25, foldChange = DiffGenes$logFC)
+
+
+a <- data.frame( DiffGenes$ID, DiffGenes$logFC)
+colnames(a) <- c("Symbol","logFC")
+rownames(a) <- a$Symbol
+
+
+a <- cbind(as.character(DiffGenes$gene_short_name), DiffGenes$logFC)
+
+rownames(a) <- a[,1]
+a <- a[,-1]
+
+emapplot(ego)
+
+cnetplot(ego, foldChange=geneList)
+```
