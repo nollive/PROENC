@@ -282,8 +282,6 @@ ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) +
 
 ```{r}
 #PCA en utilisant FactoMineR
-
-#Calcul de l'ACP avec FactomineR
 pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
@@ -551,3 +549,85 @@ pheatmap(Danger_gene_matrix,
          annotation_col= annotations,
          scale="row")
 ```
+
+# Gene Ontology Term Enrichment analysis
+```{r}
+############# GO analysis ###########################
+#library("clusterProfiler")
+library(org.Hs.eg.db)
+library(DOSE)
+# on rapelle que p_cutoff <- 0.05 
+# et fc_cutoff <- 1 
+
+
+DiffGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & abs(full_results$logFC) > fc_cutoff, ]
+dim(DiffGenes)
+UpGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC > fc_cutoff, ]
+dim(UpGenes)
+DownGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC < -fc_cutoff, ]
+dim(DownGenes)
+
+DiffGenesSymb <- DiffGenes$ID
+length(DiffGenesSymb)
+UpGenesSymb <- UpGenes$ID
+DownGenesSymb <- DownGenes$ID
+geneList <- data$genes$geneName
+length(geneList)
+
+keytypes(org.Hs.eg.db)
+
+
+ego <- enrichGO(gene         = UpGenesSymb,
+                universe = geneList,
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.5,
+                qvalueCutoff  = 0.5,
+                minGSSize=5)
+
+head(ego)
+dim(ego)
+data.frame(ego)
+
+
+SelGO <- ego[which(ego$p.adjust  < 0.05 & ego$Count > 5),]
+
+barplot(ego)
+barplot(ego, showCategory= dim(SelGO)[1] )
+barplot(ego, showCategory= 10)
+
+write.table(data.frame(ego), file =paste("c-GO-", comparison, "-Down_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+
+ego2 <- clusterProfiler::simplify(ego, cutoff=0.8, by="p.adjust", select_fun=min)
+barplot(ego2)
+
+jpeg(paste("h-GO-UP", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+dev.off()
+#plotGOgraph(ego)
+upsetplot(ego)
+#cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+
+
+
+heatplot(ego, showCategory = 25) #, foldChange = DiffGenes$logFC)
+heatplot(ego,showCategory = 25, foldChange = DiffGenes$logFC)
+
+
+a <- data.frame( DiffGenes$ID, DiffGenes$logFC)
+colnames(a) <- c("Symbol","logFC")
+rownames(a) <- a$Symbol
+
+
+a <- cbind(as.character(DiffGenes$gene_short_name), DiffGenes$logFC)
+
+rownames(a) <- a[,1]
+a <- a[,-1]
+
+emapplot(ego)
+
+cnetplot(ego, foldChange=geneList)
+```
+
