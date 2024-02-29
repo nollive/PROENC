@@ -152,9 +152,6 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
 ```
 ## Analyse
 ```{r}
-library(limma)
-library(readr)
-
 summary(exprs(data_filtr))
 boxplot(exprs(data_filtr),outline=FALSE)
 ```
@@ -162,8 +159,6 @@ boxplot(exprs(data_filtr),outline=FALSE)
 
 # Heatmap entre GSM
 ```{r}
-library(pheatmap)
-
 #Calcul de la matrice de correlation d'expression des gènes pour chaque GSM (étude de correlation entre les samples)
 corMatrix <- cor(exprs(data_filtr),use="c")
 
