@@ -1,10 +1,24 @@
 ---
-title: "R Notebook"
+title: "Pipeline GSE145408"
 output: html_notebook
 ---
 
 ```{r eval=false}
 #Library####
+library(affycoretools)
+library(RColorBrewer)
+library(oligo)
+library(ggplot2)
+library(readxl)
+library(GEOquery)
+library(readr)
+library(dplyr)
+library(pheatmap)
+library(ggrepel)
+library(FactoMineR)
+library(limma)
+
+
 library("annotate")
 library("heatmap3")
 library("Biobase")
@@ -12,42 +26,34 @@ library("tools")
 library("AnnotationDbi")
 library("annotate")
 library("heatmap3")
-library(RColorBrewer)
 library("ade4")
 library("ALL")
 library("gplots")
-library(ggplot2)
 library("ALL")
 library("ade4")
-#library("mixOmics")
+library('gcrma')
 library("RVAideMemoire")
-library(limma)
 library("affy")
 library("pd.huex.1.0.st.v2")
+
+#library("mixOmics")
+
 #library("hugene10sttranscriptcluster")
 #library("huex10sttranscriptcluster.db")
-library('gcrma')
-library(oligo)
+#library("hgu133plus2.db")
 #library(hugene10stv1cdf)
-library(dplyr)
-library("hgu133plus2.db")
-
-
+library(hgu133a.db)
 ```
 
 
 ```{r eval=false}
-library(readxl)
-library(GEOquery)
 #Data import#####
 wd_a <- "/Users/olivier/Desktop/Projet/Test/"
 knitr::opts_chunk$set(root.dir = wd_a)
-#setwd(wd_a)
-# Accessing Raw Data from GEO:
+ # Accessing Raw Data from GEO:
 my_id = "GSE145408"
 filePaths = getGEOSuppFiles(my_id)
 ```
-
 
 
 ```{r eval=false}
@@ -60,11 +66,9 @@ file_pheno <- paste0(my_id,"_Target.txt")
 data <- read_excel(paste0(wd_a,my_id,"/",file_pheno_xlsx))
 
 write.table(data, file = file_pheno, sep = "\t", row.names = TRUE)
-pheno <- read.table(file = file_pheno, header = TRUE, sep = "\t", row.names = 1)
 
-pd <-read.AnnotatedDataFrame(file = file_pheno,row.names = 1, header=TRUE,as.is=TRUE, sep = "\t")
 
-pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Time", "Group_short","Description", "File"))
+pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Time", "Group_short", "Description", "File"))
 
 # Iterate through each column of pd
 for (col in colnames(pd)) {
@@ -84,47 +88,39 @@ knitr::opts_chunk$set(root.dir = wd)
 write.table(matrix(dir()),file="a-list-files.txt", sep="\t")
 ```
 
-
 ```{r}
 #Reads CEL files
-library(oligo)
 
 
+# Lectures des fichiers .CEL
 rawAffyData <- read.celfiles(filenames = pData(pd)$File, phenoData = pd)
 
-
+# Vérification du bon import et première visualisation des données brutes
 exprs(rawAffyData)[1:4,1:3]
-#boxplot(rawAffyData, which=c("all"))
-#hist(rawAffyData)
-#hist(rawAffyData, which=c("all"))
+boxplot(rawAffyData, which=c("all"))
+hist(rawAffyData)
+hist(rawAffyData, which=c("all"))
 #pmSeq <- pmSequence(rawAffyData)
 #pmSeq[1:5]
-
 colnames(rawAffyData)
+
 
 # Normalizes data ####
 #Summarised per gene:
-eset <- oligo::rma(rawAffyData)
+eset <- oligo::rma(rawAffyData) #Normalization entre les puces
 #boxplot(eset)
 #change directory: ####
+
+
 # annotate: #### Selon la puce, changer le package d'annotation
 
-library(affycoretools)
+eset <-annotateEset(eset,hgu133a.db)
 
-#library(hugene20sttranscriptcluster.db)
-#BiocManager::install("hgu133plus2.db")
-library(hgu133plus2.db)
-eset <-annotateEset(eset,hgu133plus2.db)
-#eset <- annotateEset(eset, hugene20sttranscriptcluster.db )
-#eset <- annotateEset(eset, pd.hugene.2.1.st)
-
+# Vérification de la bonne annotation
 geneName = "GAPDH"
 which(fData(eset)$SYMBOL == geneName )
-```
-
-
-```{r}
 #head(fData(eset))
+
 
 # filtration:
 eset_medians <- rowMedians(Biobase::exprs(eset))
@@ -133,22 +129,27 @@ hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE,
                  border = "antiquewhite4",
                  xlab = "Median intensities")
 median(eset_medians)
-
 man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
 length(which((rowMedians(exprs(eset)) >= man_threshold) == "TRUE"))
+
+#Filtration selon la médiane d'expression (enleve aussi les NA)
 data_filtr  <- eset[rowMedians(exprs(eset)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$GSM
 dim(data_filtr)
 dim(eset)
 
+#Rassemble tout dans un dataset
 toto <- cbind(fData(data_filtr), exprs(data_filtr))
 dim(toto)
-write.table(toto, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
+
+#Export des données d'expression
+#write.table(toto, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
 
 
-##enlever gene sans Symbol: ####
+##enlever gene sans Symbol: #### -> Mauvaise annotation
 length(which(is.na(fData(data_filtr)$SYMBOL) ==T ))
 index <- which(is.na(fData(data_filtr)$SYMBOL) ==T )
 sansNA <- data_filtr[-index, ]
@@ -164,5 +165,462 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                  xlab = "Median intensities")
 ##### END import #####
 
+```
+## Analyse
+```{r}
+summary(exprs(data_filtr))
+boxplot(exprs(data_filtr),outline=FALSE)
+```
+
+# Inspection des variables
+```{r}
+sampleInfo <- pData(data_filtr)
+colnames(sampleInfo)
+rownames(sampleInfo) <- sampleInfo$GSM
+## Utilisation des infos contenues dans source_name_ch1 et characteristics_ch1.1 
+sampleInfo <- dplyr::select(sampleInfo, Patient,Time,Group_short,Group,Description,GSM) 
+
+## Si jamais on a besoin de renommer nos variables (plus lisible)
+#sampleInfo <- dplyr::rename(sampleInfo,group = source_name_ch1, patient=characteristics_ch1)
+View(sampleInfo)
+```
+
+
+# Heatmap entre GSM
+```{r}
+#Calcul de la matrice de correlation d'expression des gènes pour chaque GSM (étude de correlation entre les samples)
+corMatrix <- cor(exprs(data_filtr),use="c")
+
+## Vérifier que les colonnes de sampleInfo et corMatrix soient identiques
+rownames(sampleInfo)
+colnames(corMatrix)
+
+## Sinon, on peut forcer avec le code suivant
+rownames(sampleInfo) <- colnames(corMatrix)
+
+# Supprimer les colonnes non nécessaires de sampleInfo
+annotations <- sampleInfo[, c("Patient", "Time")]
+# Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
+order_rows <- order(sampleInfo$GSM)
+
+# Réorganiser les lignes de la matrice de corrélation
+corMatrix_ordered <- corMatrix[order_rows, order_rows]
+
+# Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
+pheatmap(corMatrix_ordered, annotation_col = annotations)
+```
+
+# Export
+
+```{r eval=false}
+#full_output <- cbind(fData(data_filtr),exprs(data_filtr))
+#write_csv(full_output, path="gse_full_output.csv")
+```
+
+# Définition de nos features (et modification des noms de features si besoin (selon version de puces))
+```{r}
+#Import de features à partir des données fData
+features <- fData(data_filtr)
+colnames(features)
+
+## Pour garder que certaines features
+features <- dplyr::select(features,"SYMBOL","GENENAME","ENTREZID")
+
+#Renommer les features (pour visualisation ensuite, il faut enlever les espaces)
+features <- features %>% 
+  rename(GENE_SYMBOL = `SYMBOL`,
+         GENE_TITLE = `GENENAME`)
+
+#Affichage de features
+View(features)
+
+#Export des features
+full_output <- cbind(features,exprs(data_filtr))
+write_csv(full_output, path="gse_full_output.csv")
+```
+
+
+## Differential Expression
+
+# Création de notre matrice design et constrast
+```{r}
+# Création des données de design 
+design_data <- data.frame(
+  Patient = "",
+  GSM =  rownames(pData(data_filtr)),
+  Time = "" 
+)
+
+## Attention, vérifier que les GSM sont dans le bon ordre !
+View(design_data)
+
+
+##Création de la matrice de design 
+# ici on compare no withdrawal (N=4) and Tac withdrawal (N=14) + 3months post withdrawal
+#il y a No withdrawal (NW), withrawal stable (WS) et withdrawal rejection (WR)
+design <- model.matrix(~0+ Time+Patient, data = design_data) 
+
+# Afficher la matrice de design
+print(design)
+```
+
+
+# ACP
+```{r}
+
+## Attention à bien avoir transposé la matrice d'expression sinon PCA en fonction des individus et non de l'expression des genes
+
+#PCA classique
+pca <- prcomp(t(exprs(data_filtr)))
+
+##Rajouter les informations des patients
+cbind(sampleInfo, pca$x) %>% 
+ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) + 
+  geom_point() + 
+  geom_text_repel()
+```
+
+```{r}
+#PCA en utilisant FactoMineR
+pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+```
+
+
+```{r} 
+## A MODIFIER
+
+##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
+# Plot PCA
+
+
+#GSM des patients
+patient_GSM <- sampleInfo$GSM
+
+
+# Initialisation du vecteur patient (pour être sur de conserver la même taille entre patient_GSM et patient)
+patient <- character(length = length(patient_GSM))
+
+
+for (i in 1:length(patient_GSM)) {
+  # Extraction du numéro du patient
+  patient_number <- substr(patient_GSM[i], 4, nchar(patient_GSM[i]))
+  
+  # Ajout de l'information de temps (T0 ou T1) pour chaque patient
+  patient[i] <- ""
+}
+
+patient
+
+
+
+# Création de notre dataframe pour l'affichage de l'ACP
+df_pca <- data.frame(
+  Patient = patient,
+  Time = "",
+  PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
+  PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
+)
+
+
+# Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
+df_arrows <- df_pca %>%
+  mutate(PC1_end = lead(PC1),
+         PC2_end = lead(PC2)) %>%
+  filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
+
+
+#Titre des axes
+PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
+PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
+
+
+# Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
+pca_plot <- ggplot(
+  df_pca, aes(x = PC1, y = PC2, color = Time)) +
+  geom_point(size = 3) +
+  geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ], 
+               aes(xend = PC1_end, yend = PC2_end),
+               arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
+  geom_text(aes(label = Patient), vjust = -1) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_vline(xintercept = 0, linetype = "dotted") +
+  ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
+  labs(x = PC1_t , y = PC2_t, color = "Time") +
+  theme_minimal()
+
+
+# Afficher le plot de l'ACP
+print(pca_plot)
+```
+
+
+## Etablissement de la différential expression
+
+# lmFit
+```{r}
+fit <- lmFit(exprs(data_filtr), design)
+
+#Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
+head(fit$coefficients)
+```
+
+
+#Définition de nos contrasts pour la differencial expression
+
+```{r}
+## Si on fait T0 contre T1
+contrasts <- makeContrasts( Comparaison=TimeT0 - TimeT1, levels = design)
+
+# On applique nos constrasts 
+fit2 <- contrasts.fit(fit, contrasts)
+fit2
+
+```
+
+# On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
+```{r}
+fit2 <- eBayes(fit2)
+
+# Résultats avec topTable
+topTable(fit2)
+
+### pour voir les second constratst (si ils existtent? chaque individu T0 et T1??)
+## topTable(fit2, coef=2)
+
+#decideTests donne cb de genes sont differentially expressed
+decideTests(fit2)
+
+table(decideTests(fit2))
+```
+
+
+# Visualisation des resultat de la differencial expression
+
+```{r}
+fit2$genes <- features
+summary(topTable(fit2))
+```
+
+```{r}
+full_results <- topTable(fit2, number=Inf)
+full_results <- tibble::rownames_to_column(full_results,"ID")
+View(full_results)
+```
+
+```{r}
+ggplot(full_results,aes(x = logFC, y= -log10(adj.P.Val))) + geom_point()
+```
+
+
+```{r}
+p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
+fc_cutoff <- 1 #IDEM
+
+#Problèmes car aucune significative???? (essais sans les poids???)
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+```
+## Affichage des 20 gènes ayant leur expression la plus modifiée
+
+```{r}
+p_cutoff <- 0.05
+fc_cutoff <- 1
+topN <- 20 #Nombre de genes affichés sur le graphe
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+```
+## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
+```{r}
+my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
+  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  geom_point() + 
+  geom_text_repel(col = "black", max.overlaps = 20)
+
+#Problèmes --> non affichés??
+```
+
+## Filter selon pvalue ajustée?? (a faire)
+
+```{r}
+#p_cutoff <- 0.05
+#fc_cutoff <- 1
+#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
+```
+
+
+
+# Export avec write_csv (filtrer ceux significatifs)
+
+```{r}
+#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+ # write_csv(path="filtered_de_results.csv")
+```
+
+
+### Autre visualisation (Heatmaps)
+
+
+# Heatmap des 20 genes les plus significatifs
+```{r}
+## Top N genes
+
+topN <- 20
+##
+top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(ID)
+
+#On recupère le nom des top 20 genes
+top_gene_names <- mutate(full_results, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(GENE_SYMBOL) 
+
+## Recupere les expressions des genes d'interet
+gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+
+##Affichage de la heatmpa des topN genes
+pheatmap(gene_matrix_top,
+     labels_row = top_gene_names,
+     scale="row")
+
+#PROBLEME MANQUE DEUX NOM DE GENES????
+```
+
+
+### Heatmap 20 genes de la tolérance (BARON)
+
+```{r}
+#20 GENES (BARON 2015)
+Baron_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+
+Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(ID)
+
+Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(GENE_SYMBOL)
+
+Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+
+#Affichage
+rownames(sampleInfo) <- colnames(Baron_gene_matrix)
+pheatmap(Baron_gene_matrix,
+         labels_row = Baron_gene_names,
+         annotation_col= annotations,
+         scale="row")
+```
+
+
+```{r}
+
+#6 GENES (DANGER 2017)
+Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
+#my_genes <- c("MS4A1", "BANK1")
+#my_genes <- c("CD40","ID3", "MZB1", "TCL1A") #CTLA4/AKR1C3 marche pas??
+
+Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(ID)
+
+Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(GENE_SYMBOL)
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Danger_gene_matrix)
+Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+
+
+pheatmap(Danger_gene_matrix,
+         labels_row = Danger_gene_names,
+         annotation_col= annotations,
+         scale="row")
+```
+
+# Gene Ontology Term Enrichment analysis
+```{r}
+############# GO analysis ###########################
+#library("clusterProfiler")
+library(org.Hs.eg.db)
+library(DOSE)
+# on rapelle que p_cutoff <- 0.05 
+# et fc_cutoff <- 1 
+
+
+DiffGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & abs(full_results$logFC) > fc_cutoff, ]
+dim(DiffGenes)
+UpGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC > fc_cutoff, ]
+dim(UpGenes)
+DownGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC < -fc_cutoff, ]
+dim(DownGenes)
+
+DiffGenesSymb <- DiffGenes$ID
+length(DiffGenesSymb)
+UpGenesSymb <- UpGenes$ID
+DownGenesSymb <- DownGenes$ID
+geneList <- data$genes$geneName
+length(geneList)
+
+keytypes(org.Hs.eg.db)
+
+
+ego <- enrichGO(gene         = UpGenesSymb,
+                universe = geneList,
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.5,
+                qvalueCutoff  = 0.5,
+                minGSSize=5)
+
+head(ego)
+dim(ego)
+data.frame(ego)
+
+
+SelGO <- ego[which(ego$p.adjust  < 0.05 & ego$Count > 5),]
+
+barplot(ego)
+barplot(ego, showCategory= dim(SelGO)[1] )
+barplot(ego, showCategory= 10)
+
+write.table(data.frame(ego), file =paste("c-GO-", comparison, "-Down_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+
+ego2 <- clusterProfiler::simplify(ego, cutoff=0.8, by="p.adjust", select_fun=min)
+barplot(ego2)
+
+jpeg(paste("h-GO-UP", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+dev.off()
+#plotGOgraph(ego)
+upsetplot(ego)
+#cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+
+
+
+heatplot(ego, showCategory = 25) #, foldChange = DiffGenes$logFC)
+heatplot(ego,showCategory = 25, foldChange = DiffGenes$logFC)
+
+
+a <- data.frame( DiffGenes$ID, DiffGenes$logFC)
+colnames(a) <- c("Symbol","logFC")
+rownames(a) <- a$Symbol
+
+
+a <- cbind(as.character(DiffGenes$gene_short_name), DiffGenes$logFC)
+
+rownames(a) <- a[,1]
+a <- a[,-1]
+
+emapplot(ego)
+
+cnetplot(ego, foldChange=geneList)
 ```
 
