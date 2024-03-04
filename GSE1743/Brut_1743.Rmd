@@ -150,11 +150,11 @@ length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
 dim(sansNA)
 dim(data_filtr)
 
-sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
-hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
-                 main = "Histogram of the median intensities", 
-                 border = "antiquewhite4",
-                 xlab = "Median intensities")
+#sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
+#hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
+#                 main = "Histogram of the median intensities", 
+#                border = "antiquewhite4",
+#                 xlab = "Median intensities")
 ##### END import #####
 
 ```
