@@ -78,8 +78,8 @@ summary(exprs(gse_brut))
 
 #Si pas en échelle log2
 gse <- log2(exprs(gse_brut))
-summary(exprs(gse))
-boxplot(exprs(gse),outline=FALSE)
+summary(gse)
+boxplot(gse,outline=FALSE)
 ```
 ```{r}
 sampleInfo <- pData(gse)
@@ -109,7 +109,7 @@ which(fData(gse)$"Gene Symbol" == geneName )
 #head(fData(gse))
 
 # filtration:
-eset_medians <- rowMedians(Biobase::exprs(gse))
+eset_medians <- rowMedians(Biobase::gse)
 hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
                  border = "antiquewhite4",
@@ -119,10 +119,10 @@ man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
-length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
+length(which((rowMedians(gse) >= man_threshold) == "TRUE"))
 
 #Filtration selon la médiane d'expression (enleve aussi les NA)
-data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
+data_filtr  <- gse[rowMedians(gse) >= man_threshold,]
 colnames(data_filtr) <- pData(data_filtr)$geo_accession
 dim(data_filtr)
 dim(gse)
