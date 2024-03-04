@@ -28,8 +28,6 @@ library("heatmap3")
 library("ade4")
 library("ALL")
 library("gplots")
-library("ALL")
-library("ade4")
 #library("mixOmics")
 library("RVAideMemoire")
 library("affy")
@@ -255,9 +253,9 @@ ggplot(aes(x = PC1, y=PC2, col=Group_short,label=paste("Patient", Patient))) +
 
 ```{r}
 #PCA en utilisant FactoMineR
-library(FactoMineR)
+#library(FactoMineR)
 #Calcul de l'ACP avec FactomineR
-pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+#pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
 
@@ -521,13 +519,14 @@ heatplot(ego, showCategory = 25) #, foldChange = DiffGenes$logFC)
 heatplot(ego,showCategory = 25, foldChange = DiffGenes$logFC)
 
 
-a <- data.frame( DiffGenes$ID, DiffGenes$logFC)
+a <- data.frame( DiffGenes$GENE_SYMBOL, DiffGenes$logFC)
 colnames(a) <- c("Symbol","logFC")
+
+a <- a[!duplicated(a$Symbol), ]
 rownames(a) <- a$Symbol
 
-
-a <- cbind(as.character(DiffGenes$gene_short_name), DiffGenes$logFC)
-
+##???
+a <- cbind(as.character(DiffGenes$GENE_SYMBOL, DiffGenes$logFC))
 rownames(a) <- a[,1]
 a <- a[,-1]
 
