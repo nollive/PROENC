@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Pipeline GSE15630"
 output: html_notebook
 ---
 

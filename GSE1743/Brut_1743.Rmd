@@ -77,7 +77,7 @@ head(exprs(gse_brut)) ## expression data
 summary(exprs(gse_brut))
 
 #Si pas en échelle log2
-exprs(gse) <- log2(exprs(gse_brut))
+gse <- log2(exprs(gse_brut))
 summary(exprs(gse))
 boxplot(exprs(gse),outline=FALSE)
 ```
@@ -449,7 +449,7 @@ pheatmap(Danger_gene_matrix,
 # Gene Ontology Term Enrichment analysis
 ```{r}
 ############# GO analysis ###########################
-#library("clusterProfiler")
+library("clusterProfiler")
 library(org.Hs.eg.db)
 library(DOSE)
 # on rapelle que p_cutoff <- 0.05 
