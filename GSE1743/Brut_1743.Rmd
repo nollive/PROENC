@@ -274,6 +274,7 @@ head(fit$coefficients)
 ```{r}
 
 ## Si on fait T0 contre T1
+comparison <- "DiffCsa-SRL"
 contrasts <- makeContrasts( Comparaison=Group_shortCYCLOSPORINE - Group_shortSIROLIMUS, levels = design)
 
 # On applique nos constrasts 
@@ -468,11 +469,11 @@ dim(UpGenes)
 DownGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC < -fc_cutoff, ]
 dim(DownGenes)
 
-DiffGenesSymb <- DiffGenes$ID
+DiffGenesSymb <- DiffGenes$GENE_SYMBOL
 length(DiffGenesSymb)
-UpGenesSymb <- UpGenes$ID
-DownGenesSymb <- DownGenes$ID
-geneList <- features$GENE_ID
+UpGenesSymb <- UpGenes$GENE_SYMBOL
+DownGenesSymb <- DownGenes$GENE_SYMBOL
+geneList <- features$GENE_SYMBOL
 length(geneList)
 
 keytypes(org.Hs.eg.db)
@@ -484,8 +485,8 @@ ego <- enrichGO(gene         = UpGenesSymb,
                 keyType       = 'SYMBOL',
                 ont           = "BP",
                 pAdjustMethod = "BH",
-                pvalueCutoff  = 0.5,
-                qvalueCutoff  = 0.5,
+                pvalueCutoff  = 0.05,
+                #qvalueCutoff  = 0.5,
                 minGSSize=5)
 
 head(ego)
