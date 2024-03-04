@@ -82,7 +82,7 @@ summary(gse)
 boxplot(gse,outline=FALSE)
 ```
 ```{r}
-sampleInfo <- pData(gse)
+sampleInfo <- pData(gse_brut)
 colnames(sampleInfo)
 
 ## Utilisation des infos contenues dans source_name_ch1 et description
@@ -105,8 +105,8 @@ View(sampleInfo)
 
 # Vérification de la bonne annotation
 geneName = "GAPDH"
-which(fData(gse)$"Gene Symbol" == geneName )
-#head(fData(gse))
+which(fData(gse_brut)$"Gene Symbol" == geneName )
+#head(fData(gse_brut))
 
 # filtration:
 eset_medians <- rowMedians(Biobase::gse)
