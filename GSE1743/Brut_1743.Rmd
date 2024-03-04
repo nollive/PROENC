@@ -6,6 +6,15 @@ output: html_notebook
 ```{r eval=false}
 #Library####
 library(GEOquery)
+library(readr)
+library(ggrepel)
+library(pheatmap)
+library(limma)
+library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(oligo)
+
 library("annotate")
 library("heatmap3")
 library("Biobase")
@@ -13,24 +22,19 @@ library("tools")
 library("AnnotationDbi")
 library("annotate")
 library("heatmap3")
-library(RColorBrewer)
 library("ade4")
 library("ALL")
 library("gplots")
-library(ggplot2)
 library("ALL")
 library("ade4")
 #library("mixOmics")
 library("RVAideMemoire")
-library(limma)
 library("affy")
 library("pd.huex.1.0.st.v2")
 #library("hugene10sttranscriptcluster")
 #library("huex10sttranscriptcluster.db")
 library('gcrma')
-library(oligo)
 #library(hugene10stv1cdf)
-library(dplyr)
 #library("hgu133plus2.db")
 
 
@@ -468,7 +472,7 @@ DiffGenesSymb <- DiffGenes$ID
 length(DiffGenesSymb)
 UpGenesSymb <- UpGenes$ID
 DownGenesSymb <- DownGenes$ID
-geneList <- data$genes$geneName
+geneList <- features$GENE_ID
 length(geneList)
 
 keytypes(org.Hs.eg.db)
