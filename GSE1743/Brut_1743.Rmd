@@ -39,6 +39,16 @@ library('gcrma')
 #library("hgu133plus2.db")
 
 
+# Fonction pour enregistrer les pheatmap (https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file)
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+    stopifnot(!missing(x))
+    stopifnot(!missing(filename))
+    pdf(filename, width=width, height=height)
+    grid::grid.newpage()
+    grid::grid.draw(x$gtable)
+    dev.off()
+}
+
 
 ```
 
@@ -192,12 +202,6 @@ corMatrix_ordered <- corMatrix[order_rows, order_rows]
 # Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
 pheatmap(corMatrix_ordered, annotation_col = annotations)
 ```
-# Export
-```{r eval=false}
-#library(readr)
-#full_output <- cbind(fData(data_filtr),exprs(data_filtr))
-#write_csv(full_output, path="gse_full_output.csv")
-```
 
 # Définition de nos features (et modification des noms de features si besoin (selon version de puces))
 ```{r}
@@ -207,7 +211,7 @@ features <- fData(data_filtr)
 colnames(features)
 
 ## Pour garder que certaines features
-features <- dplyr::select(features,"Gene Symbol","Gene Title","ENTREZ_GENE_ID")
+features <- dplyr::select(features,"Gene Symbol", "Gene Title", "ENTREZ_GENE_ID")
 
 #Renommer les features (pour visualisation ensuite, il faut enlever les espaces)
 features <- features %>% 
@@ -219,7 +223,7 @@ View(features)
 
 #Export des features
 full_output <- cbind(features,exprs(data_filtr))
-write_csv(full_output, path="gse_full_output.csv")
+write_csv(full_output, path=paste0('GSE_',my_id,"_gse_full_output.csv"))
 ```
 
 
@@ -281,7 +285,6 @@ contrasts <- makeContrasts( Comparaison=Group_shortCYCLOSPORINE - Group_shortSIR
 # On applique nos constrasts 
 fit2 <- contrasts.fit(fit, contrasts)
 fit2
-
 ```
 
 # On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
@@ -291,17 +294,11 @@ fit2 <- eBayes(fit2)
 # Résultats avec topTable
 topTable(fit2)
 
-### pour voir les second constratst (si ils existtent? chaque individu T0 et T1??)
-## topTable(fit2, coef=2)
-
 #decideTests donne cb de genes sont differentially expressed
 decideTests(fit2)
-
 table(decideTests(fit2))
 ```
 
-
-# Visualisation des resultat de la differencial expression
 
 # Visualisation des resultat de la differencial expression
 
@@ -316,16 +313,10 @@ full_results <- tibble::rownames_to_column(full_results,"ID")
 View(full_results)
 ```
 
-```{r}
-ggplot(full_results,aes(x = logFC, y= -log10(adj.P.Val))) + geom_point()
-```
-
-
+# Volcano plots
 ```{r}
 p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
 fc_cutoff <- 1 #IDEM
-
-#Problèmes car aucune significative???? (essais sans les poids???)
 
 full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
@@ -357,21 +348,11 @@ full_results %>%
 #Problèmes --> non affichés??
 ```
 
-## Filter selon pvalue ajustée?? (a faire)
-
-```{r}
-#p_cutoff <- 0.05
-#fc_cutoff <- 1
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
-```
-
-
-
 # Export avec write_csv (filtrer ceux significatifs)
 
 ```{r}
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
- # write_csv(path="filtered_de_results.csv")
+filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_significant_results.csv"))
 ```
 
 
@@ -381,9 +362,8 @@ full_results %>%
 # Heatmap des 20 genes les plus significatifs
 ```{r}
 ## Top N genes
-
 topN <- 20
-##
+
 top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>% 
   filter(Rank < topN) %>% 
   pull(ID)
@@ -394,13 +374,16 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
-pheatmap(gene_matrix_top,
+heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
      annotation = annotations)
+
+save_pheatmap_pdf(heatmap_topN_genes, paste0('GSE_',my_id,'_heatmap_topN_genes.pdf'))
 
 #PROBLEME MANQUE DEUX NOM DE GENES????
 ```
@@ -418,19 +401,21 @@ Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
 Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
 rownames(sampleInfo) <- colnames(Baron_gene_matrix)
-pheatmap(Baron_gene_matrix,
+heatmap_20_genes <- pheatmap(Baron_gene_matrix,
          labels_row = Baron_gene_names,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_20_genes.pdf'))
 ```
 
 
 ```{r}
-
 #6 GENES (DANGER 2017)
 Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
 #my_genes <- c("MS4A1", "BANK1")
@@ -440,17 +425,21 @@ Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>
   pull(ID)
 
 Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
-  pull(GENE_SYMBOL)
+  pull(GENE_SYMBOL)  
+
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_6_genes.csv"))
 
 
-pheatmap(Danger_gene_matrix,
+heatmap_6_genes <- pheatmap(Danger_gene_matrix,
          labels_row = Danger_gene_names,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_6_genes.pdf'))
 ```
 
 # Gene Ontology Term Enrichment analysis
@@ -525,7 +514,7 @@ colnames(a) <- c("Symbol","logFC")
 a <- a[!duplicated(a$Symbol), ]
 rownames(a) <- a$Symbol
 
-##???
+
 a <- cbind(as.character(DiffGenes$GENE_SYMBOL, DiffGenes$logFC))
 rownames(a) <- a[,1]
 a <- a[,-1]
