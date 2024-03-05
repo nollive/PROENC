@@ -40,23 +40,23 @@ library("pd.huex.1.0.st.v2")
 
 #library("hugene10sttranscriptcluster")
 #library("huex10sttranscriptcluster.db")
-library("hgu133plus2.db")
+#library("hgu133plus2.db")
 #library(hugene10stv1cdf)
 library(hgu133a.db)
 ```
 
 
-```{r}
+```{r eval=false}
 #Data import#####
 wd_a <- "/Users/olivier/Desktop/Projet/Test/"
 knitr::opts_chunk$set(root.dir = wd_a)
  # Accessing Raw Data from GEO:
-my_id = "GSE22224"
-#filePaths = getGEOSuppFiles(my_id)
+my_id = "GSE66612"
+filePaths = getGEOSuppFiles(my_id)
 ```
 
 
-```{r}
+```{r eval=false}
 ### Import data ----
 
 #Lecture du fichier Target
@@ -68,7 +68,7 @@ data <- read_excel(paste0(wd_a,my_id,"/",file_pheno_xlsx))
 write.table(data, file = file_pheno, sep = "\t", row.names = TRUE)
 
 
-pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Treatment", "Group_short", "Description", "File"))
+pd <- read.AnnotatedDataFrame(file = file_pheno, row.names = 1, header = TRUE, as.is = TRUE, sep = "\t", col.names = c("GSM", "Group", "Patient", "Time", "Group_short", "Description", "File"))
 
 # Iterate through each column of pd
 for (col in colnames(pd)) {
@@ -110,13 +110,11 @@ colnames(rawAffyData)
 eset <- oligo::rma(rawAffyData) #Normalization entre les puces
 #boxplot(eset)
 #change directory: ####
-```
 
 
-```{r}
 # annotate: #### Selon la puce, changer le package d'annotation
 
-eset <-annotateEset(eset,hgu133plus2.db)
+eset <-annotateEset(eset,hgu133a.db)
 
 # Vérification de la bonne annotation
 geneName = "GAPDH"
@@ -144,11 +142,11 @@ dim(data_filtr)
 dim(eset)
 
 #Rassemble tout dans un dataset
-concat <- cbind(fData(data_filtr), exprs(data_filtr))
-dim(concat)
+toto <- cbind(fData(data_filtr), exprs(data_filtr))
+dim(toto)
 
 #Export des données d'expression
-#write.table(concat, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
+#write.table(toto, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
 
 
 ##enlever gene sans Symbol: #### -> Mauvaise annotation
@@ -180,7 +178,7 @@ sampleInfo <- pData(data_filtr)
 colnames(sampleInfo)
 rownames(sampleInfo) <- sampleInfo$GSM
 ## Utilisation des infos contenues dans source_name_ch1 et characteristics_ch1.1 
-sampleInfo <- dplyr::select(sampleInfo, Patient,Treatment,Group_short,Group,Description,GSM) 
+sampleInfo <- dplyr::select(sampleInfo, Patient,Time,Group_short,Group,Description,GSM) 
 
 ## Si jamais on a besoin de renommer nos variables (plus lisible)
 #sampleInfo <- dplyr::rename(sampleInfo,group = source_name_ch1, patient=characteristics_ch1)
@@ -201,8 +199,7 @@ colnames(corMatrix)
 rownames(sampleInfo) <- colnames(corMatrix)
 
 # Supprimer les colonnes non nécessaires de sampleInfo
-annotations <- sampleInfo[, c("Patient", "Treatment")]
-
+annotations <- sampleInfo[, c("Patient", "Time")]
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
 
@@ -213,81 +210,8 @@ corMatrix_ordered <- corMatrix[order_rows, order_rows]
 pheatmap(corMatrix_ordered, annotation_col = annotations)
 ```
 
-## Suppression des outliers
-```{r}
-#On remarque que le GSM553485 (HV), GSM553459 (CsA), GSM553458 (SRL) sont peu correlés aux restes des échantillons (probablement du à un effet batch, on décide de faire notre analse avec et sans ces samples.
-
-GSM_outliers <- c("GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
-
-
-# Enlever HV et CsA
-GSM_outliers <- c("GSM553485", "GSM553459")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
-
-#Enlever HV et SRL
-GSM_outliers <- c("GSM553485", "GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
-
-
-#Enlever les 3
-GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
-```
-
 # Export
+
 ```{r eval=false}
 #full_output <- cbind(fData(data_filtr),exprs(data_filtr))
 #write_csv(full_output, path="gse_full_output.csv")
@@ -322,9 +246,9 @@ write_csv(full_output, path="gse_full_output.csv")
 ```{r}
 # Création des données de design 
 design_data <- data.frame(
-  Patient = c(1:46),  # Répéter chaque patient deux fois
+  Patient = rep(1:5, each = 2),  # Répéter chaque patient deux fois
   GSM =  rownames(pData(data_filtr)),
-  Treatment = pData(data_filtr)$Treatment  # Selon le traitement
+  Time = rep(c("T0", "T1"), times = 5)  # Alterner entre T0 et T1 pour chaque patient
 )
 
 ## Attention, vérifier que les GSM sont dans le bon ordre !
@@ -333,8 +257,8 @@ View(design_data)
 
 ##Création de la matrice de design 
 # ici on confronte les 5 patients à T0 qui vont changer de traitement au nouveau traitement à T1 (T0+3mois)
-#design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
-design <- model.matrix(~0+ Treatment, data = design_data) 
+design <- model.matrix(~0+ Time+Patient, data = design_data) 
+
 # Afficher la matrice de design
 print(design)
 ```
@@ -364,6 +288,76 @@ pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
 
+```{r}
+##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
+# Plot PCA
+
+
+#GSM des patients
+patient_GSM <- c("GSM365306", "GSM365307", "GSM365308", "GSM365309", "GSM365310", "GSM365311", "GSM365312", "GSM365313", "GSM365314", "GSM365315")
+
+
+# Initialisation du vecteur patient (pour être sur de conserver la même taille entre patient_GSM et patient)
+patient <- character(length = length(patient_GSM))
+
+
+for (i in 1:length(patient_GSM)) {
+  # Extraction du numéro du patient
+  patient_number <- substr(patient_GSM[i], 4, nchar(patient_GSM[i]))
+  
+  # Ajout de l'information de temps (T0 ou T1) pour chaque patient
+  if (i %% 2 == 1) {
+    patient[i] <- paste0("Patient ", (i+1)%/%2, " GSM", patient_number, " - T0")
+  } else {
+    patient[i] <- paste0("Patient ", (i)%/%2, " GSM", patient_number, " - T1")
+  }
+} 
+
+patient
+
+
+
+# Création de notre dataframe pour l'affichage de l'ACP
+df_pca <- data.frame(
+  Patient = patient,
+  Time = rep(c("T0", "T1"), 5),
+  PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
+  PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
+)
+
+
+# Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
+df_arrows <- df_pca %>%
+  mutate(PC1_end = lead(PC1),
+         PC2_end = lead(PC2)) %>%
+  filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
+
+
+#Titre des axes
+PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
+PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
+
+
+# Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
+pca_plot <- ggplot(
+  df_pca, aes(x = PC1, y = PC2, color = Time)) +
+  geom_point(size = 3) +
+  geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ], 
+               aes(xend = PC1_end, yend = PC2_end),
+               arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
+  geom_text(aes(label = Patient), vjust = -1) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_vline(xintercept = 0, linetype = "dotted") +
+  ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
+  labs(x = PC1_t , y = PC2_t, color = "Time") +
+  theme_minimal()
+
+
+# Afficher le plot de l'ACP
+print(pca_plot)
+```
+
+
 
 ## Etablissement de la différential expression
 
@@ -379,15 +373,14 @@ head(fit$coefficients)
 #Définition de nos contrasts pour la differencial expression
 
 ```{r}
+## Si on fait individus par individus (à faire??)
+#individus <- c("CCa_T0", "CCa_T1", "CCo_T0", "CCo_T1", "CV_T0", "CV_T1", "GM_T0", "GM_T1", "SE_T0", "SE_T1")
+#contrasts <- makeContrasts(CCa_T0 - CCa_T1, CCo_T0 - CCo_T1, CV_T0 - CV_T1, GM_T0 - GM_T1, SE_T0 - SE_T1, levels = design)
 
-## CsA vs HV vs SRL
-contrasts <- makeContrasts(EffetCsA=   TreatmentCsA-TreatmentHV,
-                           DiffTrtmt=   TreatmentCsA-TreatmentSRL, 
-                           EffetSRL = TreatmentHV-TreatmentSRL,
-                           levels=colnames(design))
+## Si on fait T0 contre T1
+contrasts <- makeContrasts( Comparaison=TimeT0 - TimeT1, levels = design)
 
 # On applique nos constrasts 
-
 fit2 <- contrasts.fit(fit, contrasts)
 fit2
 
@@ -399,13 +392,6 @@ fit2 <- eBayes(fit2)
 
 # Résultats avec topTable
 topTable(fit2)
-comparisonCSA = "EffetCsA"
-topTable(fit2, coef=comparisonCSA, adjust.method="BH")
-comparisonSRL = "EffetSRL"
-topTable(fit2, coef=comparisonSRL, adjust.method="BH")
-comparisonDIFF = "DiffTrtmt"
-topTable(fit2, coef=comparisonDIFF, adjust.method="BH")
-
 
 #decideTests donne cb de genes sont differentially expressed
 decideTests(fit2)
@@ -421,120 +407,51 @@ summary(topTable(fit2))
 ```
 
 ```{r}
-#full_results <- topTable(fit2, number=Inf)
-full_results_CSA <- topTable(fit2, coef=comparisonCSA, adjust.method="BH", number=Inf)
-full_results_SRL <- topTable(fit2, coef=comparisonSRL, adjust.method="BH", number=Inf)
-full_results_DIFF <- topTable(fit2, coef=comparisonDIFF, adjust.method="BH", number=Inf)
-
-full_results_CSA <- tibble::rownames_to_column(full_results_CSA,"ID")
-full_results_SRL <- tibble::rownames_to_column(full_results_SRL,"ID")
-full_results_DIFF <- tibble::rownames_to_column(full_results_DIFF,"ID")
-#full_results <- tibble::rownames_to_column(full_results,"ID")
-
-View(full_results_CSA)
-#View(full_results)
+full_results <- topTable(fit2, number=Inf)
+full_results <- tibble::rownames_to_column(full_results,"ID")
+View(full_results)
 ```
 
-## Affichage des volcano plots
+# Volcano plots
 ```{r}
 p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
 fc_cutoff <- 1 #IDEM
-```
 
-## CSA vs HV
-```{r}
-full_results_CSA %>% 
+full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
 ```
-## SRL vs HV
-```{r}
-full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
-```
-
-## CSA vs SRL
-```{r}
-full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
-```
-
-
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
+
 ```{r}
+p_cutoff <- 0.05
+fc_cutoff <- 1
 topN <- 20 #Nombre de genes affichés sur le graphe
-```
 
-
-```{r}
-#CSA vs HV
-full_results_CSA %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
-
-#SRL vs HV
-full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
-
-#CSA VS SRL
-full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+full_results %>% 
+  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff ) %>% 
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 ```
-
-
-
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
 ```{r}
 my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
-```
 
-```{r}
-#CSA vs HV
-full_results_CSA %>% 
+full_results %>% 
   mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
   mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
   geom_point() + 
   geom_text_repel(col = "black", max.overlaps = 20)
 
-#SRL vs HV
-full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
-  geom_point() + 
-  geom_text_repel(col = "black", max.overlaps = 20)
-
-#CSA vs SRL
-full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
-  geom_point() + 
-  geom_text_repel(col = "black", max.overlaps = 20)
+#Problèmes --> non affichés??
 ```
-
-## Filter selon pvalue ajustée?? (a faire)
-
-```{r}
-#p_cutoff <- 0.05
-#fc_cutoff <- 1
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
-```
-
 
 # Export avec write_csv (filtrer ceux significatifs)
 
 ```{r}
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
- # write_csv(path="filtered_de_results.csv")
+filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_significant_results.csv"))
 ```
 
 
@@ -544,9 +461,8 @@ full_results_DIFF %>%
 # Heatmap des 20 genes les plus significatifs
 ```{r}
 ## Top N genes
-
 topN <- 20
-##
+
 top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>% 
   filter(Rank < topN) %>% 
   pull(ID)
@@ -557,13 +473,16 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
-pheatmap(gene_matrix_top,
+heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
-     annotation_col= annotations,
-     scale="row")
+     scale="row",
+     annotation = annotations)
+
+save_pheatmap_pdf(heatmap_topN_genes, paste0('GSE_',my_id,'_heatmap_topN_genes.pdf'))
 
 #PROBLEME MANQUE DEUX NOM DE GENES????
 ```
@@ -581,19 +500,21 @@ Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
 Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
 rownames(sampleInfo) <- colnames(Baron_gene_matrix)
-pheatmap(Baron_gene_matrix,
+heatmap_20_genes <- pheatmap(Baron_gene_matrix,
          labels_row = Baron_gene_names,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_20_genes.pdf'))
 ```
 
 
 ```{r}
-
 #6 GENES (DANGER 2017)
 Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
 #my_genes <- c("MS4A1", "BANK1")
@@ -603,17 +524,21 @@ Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>
   pull(ID)
 
 Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
-  pull(GENE_SYMBOL)
+  pull(GENE_SYMBOL)  
+
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_results_6_genes.csv"))
 
 
-pheatmap(Danger_gene_matrix,
+heatmap_6_genes <- pheatmap(Danger_gene_matrix,
          labels_row = Danger_gene_names,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_6_genes.pdf'))
 ```
 
 # Gene Ontology Term Enrichment analysis
