@@ -43,6 +43,16 @@ library("pd.huex.1.0.st.v2")
 library("hgu133plus2.db")
 #library(hugene10stv1cdf)
 library(hgu133a.db)
+
+# Fonction pour enregistrer les pheatmap (https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file)
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+    stopifnot(!missing(x))
+    stopifnot(!missing(filename))
+    pdf(filename, width=width, height=height)
+    grid::grid.newpage()
+    grid::grid.draw(x$gtable)
+    dev.off()
+}
 ```
 
 
