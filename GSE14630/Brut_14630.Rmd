@@ -478,8 +478,8 @@ full_results %>%
 # Export avec write_csv (filtrer ceux significatifs)
 
 ```{r}
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
- # write_csv(path="filtered_de_results.csv")
+filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_filtered_significant_results.csv"))
 ```
 
 
