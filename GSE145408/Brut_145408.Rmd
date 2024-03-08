@@ -43,6 +43,7 @@ library("pd.huex.1.0.st.v2")
 #library("hgu133plus2.db")
 #library(hugene10stv1cdf)
 library(hgu133a.db)
+library(pd.ht.hg.u133.plus.pm)
 
 ```
 
@@ -114,8 +115,8 @@ eset <- oligo::rma(rawAffyData) #Normalization entre les puces
 
 
 # annotate: #### Selon la puce, changer le package d'annotation
-
-eset <-annotateEset(eset,hgu133a.db)
+library(hgu133plus2.db)
+eset <-annotateEset(eset,hgu133plus2.db)
 
 # Vérification de la bonne annotation
 geneName = "GAPDH"
@@ -220,6 +221,7 @@ pheatmap(corMatrix_ordered, annotation_col = annotations)
 
 # Définition de nos features (et modification des noms de features si besoin (selon version de puces))
 ```{r}
+library(tidyverse)
 #Import de features à partir des données fData
 features <- fData(data_filtr)
 colnames(features)
@@ -227,9 +229,14 @@ colnames(features)
 ## Pour garder que certaines features
 features <- dplyr::select(features,"SYMBOL","GENENAME","ENTREZID")
 
+features %>% 
+  rename(features, GENE_SYMBOL = SYMBOL,
+         GENE_TITLE = GENENAME)
+
+
 #Renommer les features (pour visualisation ensuite, il faut enlever les espaces)
 features <- features %>% 
-  rename(GENE_SYMBOL = `SYMBOL`,
+  rename(features, GENE_SYMBOL = `SYMBOL`,
          GENE_TITLE = `GENENAME`)
 
 #Affichage de features
