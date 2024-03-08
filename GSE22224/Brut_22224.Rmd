@@ -15,7 +15,7 @@ library(readr)
 library(dplyr)
 library(pheatmap)
 library(ggrepel)
-library(FactoMineR)
+#library(FactoMineR)
 library(limma)
 
 
@@ -370,7 +370,7 @@ ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) +
 #PCA en utilisant FactoMineR
 
 #Calcul de l'ACP avec FactomineR
-pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+#pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
 
@@ -565,12 +565,12 @@ gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
-CSA-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
+CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
      labels_row = top_gene_names_CSA,
      annotation_col= annotations,
      scale="row")
 
-save_pheatmap_pdf(CSA-HV_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(CSA_HV_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
 
 
 
@@ -589,12 +589,12 @@ gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] %>%
   write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
-SRL-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
+SRL_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
      labels_row = top_gene_names_SRL,
      annotation_col= annotations,
      scale="row")
 
-save_pheatmap_pdf(SRL-HV_heatmap_topN_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_topN_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
 
 
 ## CSA vs SRL
@@ -612,12 +612,12 @@ gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
 
 ##Affichage de la heatmpa des topN genes
-CSA-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
+CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
      labels_row = top_gene_names_DIFF,
      annotation_col= annotations,
      scale="row") 
 
-save_pheatmap_pdf(CSA-SRL_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(CSA_SRL_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
 ```
 
 
@@ -641,12 +641,12 @@ Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]  %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
-CSA-HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_CSA,
+CSA_HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_CSA,
          labels_row = Baron_gene_names_CSA,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(CSA-HV_heatmap_6_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(CSA_HV_heatmap_6_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -662,12 +662,12 @@ Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,] %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
-SRL-HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_SRL,
+SRL_HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_SRL,
          labels_row = Baron_gene_names_SRL,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(SRL-HV_heatmap_6_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_6_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -683,12 +683,12 @@ Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]  %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix__DIFF)
-SA-SRL_heatmap_20_genes <- pheatmap(Baron_gene_matrix_DIFF,
+CSA_SRL_heatmap_20_genes <- pheatmap(Baron_gene_matrix_DIFF,
          labels_row = Baron_gene_names_DIFF,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(CSA-SRL_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(CSA_SRL_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
 
 
 ```
