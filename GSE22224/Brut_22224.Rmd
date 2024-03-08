@@ -455,20 +455,21 @@ fc_cutoff <- 1 #IDEM
 ```{r}
 full_results_CSA %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison CSA vs HV")
+
 ```
 ## SRL vs HV
 ```{r}
 full_results_SRL %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison SRL vs HV")
 ```
 
 ## CSA vs SRL
 ```{r}
 full_results_DIFF %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point()
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison CSA vs HV")
 ```
 
 
@@ -485,17 +486,26 @@ full_results_CSA %>%
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
+filter(full_results_CSA, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_significant_results.csv"))
+
 #SRL vs HV
 full_results_SRL %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
+filter(full_results_SRL, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_significant_results.csv"))
+
 #CSA VS SRL
 full_results_DIFF %>% 
   mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+
+filter(full_results_DIFF, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_significant_results.csv"))
 ```
 
 
@@ -531,51 +541,83 @@ full_results_DIFF %>%
   geom_text_repel(col = "black", max.overlaps = 20)
 ```
 
-## Filter selon pvalue ajustée?? (a faire)
-
-```{r}
-#p_cutoff <- 0.05
-#fc_cutoff <- 1
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1)
-```
-
-
-# Export avec write_csv (filtrer ceux significatifs)
-
-```{r}
-#filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
- # write_csv(path="filtered_de_results.csv")
-```
-
-
 ### Autre visualisation (Heatmaps)
 
 
 # Heatmap des 20 genes les plus significatifs
 ```{r}
 ## Top N genes
-
 topN <- 20
-##
-top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>% 
+
+
+## CSA vs HV
+top_ids_of_interest_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>% 
   filter(Rank < topN) %>% 
   pull(ID)
 
 #On recupère le nom des top 20 genes
-top_gene_names <- mutate(full_results, Rank = 1:n()) %>% 
+top_gene_names_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>% 
   filter(Rank < topN) %>% 
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top_CSA <- exprs(data_filtr_CSA)[top_ids_of_interest_CSA,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
-pheatmap(gene_matrix_top,
-     labels_row = top_gene_names,
+CSA-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
+     labels_row = top_gene_names_CSA,
      annotation_col= annotations,
      scale="row")
 
-#PROBLEME MANQUE DEUX NOM DE GENES????
+save_pheatmap_pdf(CSA-HV_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
+
+
+
+## SRL vs HV
+top_ids_of_interest_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(ID)
+
+#On recupère le nom des top 20 genes
+top_gene_names_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(GENE_SYMBOL) 
+
+## Recupere les expressions des genes d'interet
+gene_matrix_top_SRL <- exprs(data_filtr_SRL)[top_ids_of_interest_SRL,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
+
+##Affichage de la heatmpa des topN genes
+SRL-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
+     labels_row = top_gene_names_SRL,
+     annotation_col= annotations,
+     scale="row")
+
+save_pheatmap_pdf(SRL-HV_heatmap_topN_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
+
+
+## CSA vs SRL
+top_ids_of_interest_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(ID)
+
+#On recupère le nom des top 20 genes
+top_gene_names_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>% 
+  filter(Rank < topN) %>% 
+  pull(GENE_SYMBOL) 
+
+## Recupere les expressions des genes d'interet
+gene_matrix_top_DIFF <- exprs(data_filtr_DIFF)[top_ids_of_interest_DIFF,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
+
+##Affichage de la heatmpa des topN genes
+CSA-HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
+     labels_row = top_gene_names_DIFF,
+     annotation_col= annotations,
+     scale="row") 
+
+save_pheatmap_pdf(CSA-SRL_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
 ```
 
 
@@ -585,20 +627,70 @@ pheatmap(gene_matrix_top,
 #20 GENES (BARON 2015)
 Baron_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
 
-Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+
+
+# CSA vs HV
+Baron_ids_of_interest_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(ID)
 
-Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
+Baron_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix_CSA <- exprs(data_filtr_CSA)[Baron_ids_of_interest_CSA,]  %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_20_genes.csv"))
 
 #Affichage
-rownames(sampleInfo) <- colnames(Baron_gene_matrix)
-pheatmap(Baron_gene_matrix,
-         labels_row = Baron_gene_names,
+#rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
+CSA-HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_CSA,
+         labels_row = Baron_gene_names_CSA,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(CSA-HV_heatmap_6_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
+
+
+
+# SRL vs HV
+Baron_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(ID)
+
+Baron_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(GENE_SYMBOL)
+
+Baron_gene_matrix_SRL <- exprs(data_filtr_SRL)[Baron_ids_of_interest_SRL,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_20_genes.csv"))
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
+SRL-HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_SRL,
+         labels_row = Baron_gene_names_SRL,
+         annotation_col= annotations,
+         scale="row")
+
+save_pheatmap_pdf(SRL-HV_heatmap_6_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
+
+
+
+# CSA vs SRL
+Baron_ids_of_interest_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(ID)
+
+Baron_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes) %>% 
+  pull(GENE_SYMBOL)
+
+Baron_gene_matrix_DIFF <- exprs(data_filtr_DIFF)[Baron_ids_of_interest_DIFF,]  %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_20_genes.csv"))
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Baron_gene_matrix__DIFF)
+SA-SRL_heatmap_20_genes <- pheatmap(Baron_gene_matrix_DIFF,
+         labels_row = Baron_gene_names_DIFF,
+         annotation_col= annotations,
+         scale="row")
+
+save_pheatmap_pdf(CSA-SRL_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
+
+
 ```
 
 
@@ -609,21 +701,70 @@ Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
 #my_genes <- c("MS4A1", "BANK1")
 #my_genes <- c("CD40","ID3", "MZB1", "TCL1A") #CTLA4/AKR1C3 marche pas??
 
-Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+
+
+# CSA vs HV
+Danger_ids_of_interest_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes) %>% 
   pull(ID)
 
-Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+Danger_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes) %>% 
   pull(GENE_SYMBOL)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix_CSA <- exprs(data_filtr_CSA)[Danger_ids_of_interest_CSA,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_6_genes.csv"))
 
 
-pheatmap(Danger_gene_matrix,
-         labels_row = Danger_gene_names,
+heatmap_6_genes_CSA <- pheatmap(Danger_gene_matrix_CSA,
+         labels_row = Danger_gene_names_CSA,
          annotation_col= annotations,
          scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes_CSA, paste0('GSE_',my_id,'_CSA-HV_heatmap_6_genes.pdf'))
+
+
+# CSA vs HV
+Danger_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(ID)
+
+Danger_gene_names_SRL <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(GENE_SYMBOL)
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Danger_gene_matrix)
+Danger_gene_matrix_SRL <- exprs(data_filtr_SRL)[Danger_ids_of_interest_SRL,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_6_genes.csv"))
+
+
+heatmap_6_genes_SRL <- pheatmap(Danger_gene_matrix_SRL,
+         labels_row = Danger_gene_names_SRL,
+         annotation_col= annotations,
+         scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes_SRL, paste0('GSE_',my_id,'_SRL-HV_heatmap_6_genes.pdf'))
+
+
+
+# CSA vs HV
+Danger_ids_of_interest_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(ID)
+
+Danger_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_genes) %>% 
+  pull(GENE_SYMBOL)
+
+#Affichage
+#rownames(sampleInfo) <- colnames(Danger_gene_matrix)
+Danger_gene_matrix_DIFF <- exprs(data_filtr_DIFF)[Danger_ids_of_interest_DIFF,] %>%
+  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_6_genes.csv"))
+
+
+heatmap_6_genes_DIFF <- pheatmap(Danger_gene_matrix_DIFF,
+         labels_row = Danger_gene_names_DIFF,
+         annotation_col= annotations,
+         scale="row")
+
+save_pheatmap_pdf(heatmap_6_genes_DIFF, paste0('GSE_',my_id,'_CSA-SRL_heatmap_6_genes.pdf'))
 ```
 
 # Gene Ontology Term Enrichment analysis
