@@ -612,7 +612,7 @@ gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
 
 ##Affichage de la heatmpa des topN genes
-CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
+CSA_SRL_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
      labels_row = top_gene_names_DIFF,
      annotation_col= annotations,
      scale="row") 
@@ -667,7 +667,7 @@ SRL_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_SRL,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(SRL_HV_heatmap_200_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_20_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -728,7 +728,7 @@ save_pheatmap_pdf(heatmap_6_genes_CSA, paste0('GSE_',my_id,'_CSA-HV_heatmap_6_ge
 Danger_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes) %>% 
   pull(ID)
 
-Danger_gene_names_SRL <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
+Danger_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes) %>% 
   pull(GENE_SYMBOL)
 
 #Affichage
@@ -823,9 +823,9 @@ barplot(ego2_CSA)
 jpeg(paste("h-GO-UP", comparisonCSA, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
 dev.off()
 #plotGOgraph(ego)
-upsetplot(ego)
+upsetplot(ego_CSA)
 #cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
-cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+cnetplot(ego_CSA, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_CSA$logFC,   fixed = TRUE)
 
 
 
@@ -898,9 +898,9 @@ barplot(ego2_SRL)
 jpeg(paste("h-GO-UP", comparisonCSA, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
 dev.off()
 #plotGOgraph(ego)
-upsetplot(ego)
+upsetplot(ego_SRL)
 #cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
-cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+cnetplot(ego_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
 
 
 
@@ -973,9 +973,9 @@ barplot(ego2_DIFF)
 jpeg(paste("h-GO-UP", comparisonCSA, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
 dev.off()
 #plotGOgraph(ego)
-upsetplot(ego)
+upsetplot(ego_DIFF)
 #cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
-cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+cnetplot(ego_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
 
 
 
