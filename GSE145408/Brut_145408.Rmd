@@ -15,7 +15,7 @@ library(readr)
 library(dplyr)
 library(pheatmap)
 library(ggrepel)
-library(FactoMineR)
+#library(FactoMineR)
 library(limma)
 
 
@@ -44,15 +44,6 @@ library("pd.huex.1.0.st.v2")
 #library(hugene10stv1cdf)
 library(hgu133a.db)
 
-# Fonction pour enregistrer les pheatmap (https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file)
-save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
-    stopifnot(!missing(x))
-    stopifnot(!missing(filename))
-    pdf(filename, width=width, height=height)
-    grid::grid.newpage()
-    grid::grid.draw(x$gtable)
-    dev.off()
-}
 ```
 
 
@@ -302,31 +293,10 @@ pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
 # Plot PCA
 
-
-#GSM des patients
-patient_GSM <- sampleInfo$GSM
-
-
-# Initialisation du vecteur patient (pour être sur de conserver la même taille entre patient_GSM et patient)
-patient <- character(length = length(patient_GSM))
-
-
-for (i in 1:length(patient_GSM)) {
-  # Extraction du numéro du patient
-  patient_number <- substr(patient_GSM[i], 4, nchar(patient_GSM[i]))
-  
-  # Ajout de l'information de temps (T0 ou T1) pour chaque patient
-  patient[i] <- ""
-}
-
-patient
-
-
-
 # Création de notre dataframe pour l'affichage de l'ACP
 df_pca <- data.frame(
-  Patient = patient,
-  Time = "",
+  Patient = sampleInfo$GSM,
+  Time = sampleInfo$Group,
   PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
   PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
 )
