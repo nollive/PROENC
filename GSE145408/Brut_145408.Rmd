@@ -200,7 +200,7 @@ colnames(corMatrix)
 rownames(sampleInfo) <- colnames(corMatrix)
 
 # Supprimer les colonnes non nécessaires de sampleInfo
-annotations <- sampleInfo[, c("Patient", "Time")]
+annotations <- sampleInfo[, c("Group", "Time")]
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
 
