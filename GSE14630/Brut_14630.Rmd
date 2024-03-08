@@ -508,6 +508,7 @@ gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,] %>%
 ##Affichage de la heatmpa des topN genes
 heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
+     annotation_col = annotations,
      scale="row")
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0('GSE_',my_id,'_heatmap_topN_genes.pdf'))
