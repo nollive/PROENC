@@ -561,7 +561,7 @@ top_gene_names_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_CSA <- exprs(data_filtr_CSA)[top_ids_of_interest_CSA,] %>%
+gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
@@ -585,7 +585,7 @@ top_gene_names_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_SRL <- exprs(data_filtr_SRL)[top_ids_of_interest_SRL,] %>%
+gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] %>%
   write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
@@ -608,7 +608,7 @@ top_gene_names_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_DIFF <- exprs(data_filtr_DIFF)[top_ids_of_interest_DIFF,] %>%
+gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
 
 ##Affichage de la heatmpa des topN genes
@@ -636,7 +636,7 @@ Baron_ids_of_interest_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_CSA <- exprs(data_filtr_CSA)[Baron_ids_of_interest_CSA,]  %>%
+Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]  %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -657,7 +657,7 @@ Baron_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_SRL <- exprs(data_filtr_SRL)[Baron_ids_of_interest_SRL,] %>%
+Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,] %>%
   write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -678,7 +678,7 @@ Baron_ids_of_interest_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_g
 Baron_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_DIFF <- exprs(data_filtr_DIFF)[Baron_ids_of_interest_DIFF,]  %>%
+Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]  %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -712,7 +712,7 @@ Danger_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_CSA <- exprs(data_filtr_CSA)[Danger_ids_of_interest_CSA,] %>%
+Danger_gene_matrix_CSA <- exprs(data_filtr)[Danger_ids_of_interest_CSA,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_6_genes.csv"))
 
 
@@ -733,7 +733,7 @@ Danger_gene_names_SRL <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_SRL <- exprs(data_filtr_SRL)[Danger_ids_of_interest_SRL,] %>%
+Danger_gene_matrix_SRL <- exprs(data_filtr)[Danger_ids_of_interest_SRL,] %>%
   write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_6_genes.csv"))
 
 
@@ -755,7 +755,7 @@ Danger_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_gene
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_DIFF <- exprs(data_filtr_DIFF)[Danger_ids_of_interest_DIFF,] %>%
+Danger_gene_matrix_DIFF <- exprs(data_filtr)[Danger_ids_of_interest_DIFF,] %>%
   write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_6_genes.csv"))
 
 
