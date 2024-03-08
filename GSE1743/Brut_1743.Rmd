@@ -411,7 +411,7 @@ heatmap_20_genes <- pheatmap(Baron_gene_matrix,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(heatmap_20_genes, paste0('GSE_',my_id,'_heatmap_20_genes.pdf'))
 ```
 
 
