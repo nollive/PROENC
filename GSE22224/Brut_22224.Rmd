@@ -641,12 +641,12 @@ Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]  %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
-CSA_HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_CSA,
+CSA_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_CSA,
          labels_row = Baron_gene_names_CSA,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(CSA_HV_heatmap_6_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(CSA_HV_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -662,12 +662,12 @@ Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,] %>%
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
-SRL_HV_heatmap_6_genes <- pheatmap(Baron_gene_matrix_SRL,
+SRL_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_SRL,
          labels_row = Baron_gene_names_SRL,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(SRL_HV_heatmap_6_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_20_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
 
 
 
