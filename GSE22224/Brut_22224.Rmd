@@ -118,6 +118,8 @@ colnames(rawAffyData)
 # Normalizes data ####
 #Summarised per gene:
 eset <- oligo::rma(rawAffyData) #Normalization entre les puces
+eset #Voir la puce
+
 #boxplot(eset)
 #change directory: ####
 ```
@@ -230,7 +232,6 @@ pheatmap(corMatrix_ordered, annotation_col = annotations)
 GSM_outliers <- c("GSM553458")
 data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
 
 #Indices des colonnes à supprimer
 colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
@@ -487,7 +488,7 @@ full_results_CSA %>%
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
 filter(full_results_CSA, adj.P.Val < 0.05, abs(logFC) > 1) %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_significant_results.csv"))
+  write_csv(path=paste0(my_id,"_CSA-HV_filtered_significant_results.csv"))
 
 #SRL vs HV
 full_results_SRL %>% 
@@ -496,7 +497,7 @@ full_results_SRL %>%
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
 filter(full_results_SRL, adj.P.Val < 0.05, abs(logFC) > 1) %>%
-  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_significant_results.csv"))
+  write_csv(path=paste0(my_id,"_SRL-HV_filtered_significant_results.csv"))
 
 #CSA VS SRL
 full_results_DIFF %>% 
@@ -505,7 +506,7 @@ full_results_DIFF %>%
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
 
 filter(full_results_DIFF, adj.P.Val < 0.05, abs(logFC) > 1) %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_significant_results.csv"))
+  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_significant_results.csv"))
 ```
 
 
@@ -562,7 +563,7 @@ top_gene_names_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>%
 
 ## Recupere les expressions des genes d'interet
 gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
+  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
 CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
@@ -570,7 +571,7 @@ CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
      annotation_col= annotations,
      scale="row")
 
-save_pheatmap_pdf(CSA_HV_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(CSA_HV_heatmap_topN_genes, paste0(my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
 
 
 
@@ -586,7 +587,7 @@ top_gene_names_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>%
 
 ## Recupere les expressions des genes d'interet
 gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
+  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
 SRL_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
@@ -594,7 +595,7 @@ SRL_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
      annotation_col= annotations,
      scale="row")
 
-save_pheatmap_pdf(SRL_HV_heatmap_topN_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_topN_genes, paste0(my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
 
 
 ## CSA vs SRL
@@ -609,7 +610,7 @@ top_gene_names_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>%
 
 ## Recupere les expressions des genes d'interet
 gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
+  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
 
 ##Affichage de la heatmpa des topN genes
 CSA_SRL_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
@@ -617,7 +618,7 @@ CSA_SRL_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
      annotation_col= annotations,
      scale="row") 
 
-save_pheatmap_pdf(CSA_SRL_heatmap_topN_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(CSA_SRL_heatmap_topN_genes, paste0(my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
 ```
 
 
@@ -637,7 +638,7 @@ Baron_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %
   pull(GENE_SYMBOL)
 
 Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]  %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_20_genes.csv"))
+  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_20_genes.csv"))
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
@@ -646,7 +647,7 @@ CSA_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_CSA,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(CSA_HV_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(CSA_HV_heatmap_20_genes, paste0(my_id,'_CSA-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -658,7 +659,7 @@ Baron_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %
   pull(GENE_SYMBOL)
 
 Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_20_genes.csv"))
+  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_20_genes.csv"))
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
@@ -667,7 +668,7 @@ SRL_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_SRL,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(SRL_HV_heatmap_20_genes, paste0('GSE_',my_id,'_SRL-HV_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(SRL_HV_heatmap_20_genes, paste0(my_id,'_SRL-HV_heatmap_20_genes.pdf'))
 
 
 
@@ -679,7 +680,7 @@ Baron_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes)
   pull(GENE_SYMBOL)
 
 Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]  %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_20_genes.csv"))
+  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_20_genes.csv"))
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix__DIFF)
@@ -688,7 +689,7 @@ CSA_SRL_heatmap_20_genes <- pheatmap(Baron_gene_matrix_DIFF,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(CSA_SRL_heatmap_20_genes, paste0('GSE_',my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(CSA_SRL_heatmap_20_genes, paste0(my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
 
 
 ```
@@ -713,7 +714,7 @@ Danger_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes)
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
 Danger_gene_matrix_CSA <- exprs(data_filtr)[Danger_ids_of_interest_CSA,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-HV_filtered_results_6_genes.csv"))
+  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_6_genes.csv"))
 
 
 heatmap_6_genes_CSA <- pheatmap(Danger_gene_matrix_CSA,
@@ -721,7 +722,7 @@ heatmap_6_genes_CSA <- pheatmap(Danger_gene_matrix_CSA,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes_CSA, paste0('GSE_',my_id,'_CSA-HV_heatmap_6_genes.pdf'))
+save_pheatmap_pdf(heatmap_6_genes_CSA, paste0(my_id,'_CSA-HV_heatmap_6_genes.pdf'))
 
 
 # CSA vs HV
@@ -734,7 +735,7 @@ Danger_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes)
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
 Danger_gene_matrix_SRL <- exprs(data_filtr)[Danger_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_SRL-HV_filtered_results_6_genes.csv"))
+  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_6_genes.csv"))
 
 
 heatmap_6_genes_SRL <- pheatmap(Danger_gene_matrix_SRL,
@@ -742,7 +743,7 @@ heatmap_6_genes_SRL <- pheatmap(Danger_gene_matrix_SRL,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes_SRL, paste0('GSE_',my_id,'_SRL-HV_heatmap_6_genes.pdf'))
+save_pheatmap_pdf(heatmap_6_genes_SRL, paste0(my_id,'_SRL-HV_heatmap_6_genes.pdf'))
 
 
 
@@ -756,7 +757,7 @@ Danger_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_gene
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
 Danger_gene_matrix_DIFF <- exprs(data_filtr)[Danger_ids_of_interest_DIFF,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_CSA-SRL_filtered_results_6_genes.csv"))
+  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_6_genes.csv"))
 
 
 heatmap_6_genes_DIFF <- pheatmap(Danger_gene_matrix_DIFF,
@@ -764,7 +765,7 @@ heatmap_6_genes_DIFF <- pheatmap(Danger_gene_matrix_DIFF,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes_DIFF, paste0('GSE_',my_id,'_CSA-SRL_heatmap_6_genes.pdf'))
+save_pheatmap_pdf(heatmap_6_genes_DIFF, paste0(my_id,'_CSA-SRL_heatmap_6_genes.pdf'))
 ```
 
 # Gene Ontology Term Enrichment analysis

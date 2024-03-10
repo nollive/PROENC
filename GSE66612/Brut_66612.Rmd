@@ -461,7 +461,7 @@ full_results %>%
 
 ```{r}
 filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
-  write_csv(path=paste0('GSE_',my_id,"_filtered_significant_results.csv"))
+  write_csv(path=paste0(my_id,"_filtered_significant_results.csv"))
 ```
 
 
@@ -484,7 +484,7 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
 
 ## Recupere les expressions des genes d'interet
 gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_filtered_results_topN_genes.csv"))
+  write_csv(path=paste0(my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmpa des topN genes
 heatmap_topN_genes <- pheatmap(gene_matrix_top,
@@ -492,7 +492,7 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      scale="row",
      annotation = annotations)
 
-save_pheatmap_pdf(heatmap_topN_genes, paste0('GSE_',my_id,'_heatmap_topN_genes.pdf'))
+save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 
 #PROBLEME MANQUE DEUX NOM DE GENES????
 ```
@@ -511,7 +511,7 @@ Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
   pull(GENE_SYMBOL)
 
 Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_filtered_results_20_genes.csv"))
+  write_csv(path=paste0(my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
 rownames(sampleInfo) <- colnames(Baron_gene_matrix)
@@ -520,7 +520,7 @@ heatmap_20_genes <- pheatmap(Baron_gene_matrix,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_20_genes.pdf'))
+save_pheatmap_pdf(heatmap_6_genes, paste0(my_id,'_heatmap_20_genes.pdf'))
 ```
 
 
@@ -540,7 +540,7 @@ Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
 Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,] %>%
-  write_csv(path=paste0('GSE_',my_id,"_filtered_results_6_genes.csv"))
+  write_csv(path=paste0(my_id,"_filtered_results_6_genes.csv"))
 
 
 heatmap_6_genes <- pheatmap(Danger_gene_matrix,
@@ -548,7 +548,7 @@ heatmap_6_genes <- pheatmap(Danger_gene_matrix,
          annotation_col= annotations,
          scale="row")
 
-save_pheatmap_pdf(heatmap_6_genes, paste0('GSE_',my_id,'_heatmap_6_genes.pdf'))
+save_pheatmap_pdf(heatmap_6_genes, paste0(my_id,'_heatmap_6_genes.pdf'))
 ```
 
 # Gene Ontology Term Enrichment analysis
