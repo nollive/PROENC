@@ -152,20 +152,22 @@ dim(total)
 #write.table(total, file=paste0("Données d'expression du ",gse_id), sep="\t")
 
 # Suppression des genes mal annotés -> ne fonctionne pas pour l'instant
-length(which(is.na(fData(data_filtr)$"Gene Symbol")))
+if (length(which(is.na(fData(data_filtr)$"Gene Symbol"))) != 0 ){
 index <- which(is.na(fData(data_filtr)$"Gene Symbol"))
 sansNA <- data_filtr[-index, ]
 length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
 dim(sansNA)
 dim(data_filtr)
+data_filtr <- sansNA
+sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
+hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
+                 main = "Histogram of the median intensities", 
+                border = "antiquewhite4",
+                 xlab = "Median intensities")
+}
 
-#sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
-#hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
-#                 main = "Histogram of the median intensities", 
-#                border = "antiquewhite4",
-#                 xlab = "Median intensities")
+
 ##### END import #####
-
 ```
 ## Analyse
 ```{r}
@@ -340,7 +342,6 @@ p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
 fc_cutoff <- 1 #IDEM
 
 full_results %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
 geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
@@ -355,7 +356,7 @@ p_cutoff <- 0.05
 fc_cutoff <- 1
 topN <- 20 #Nombre de genes affichés sur le graphe
 full_results %>% 
-  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff ) %>% dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
   geom_point() +    
   geom_text_repel(col = "black", max.overlaps = 25)  + 
@@ -371,8 +372,8 @@ full_results %>%
 my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
 
 full_results %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
   geom_point() + 
   geom_hline(yintercept = -log10(0.05),
@@ -388,7 +389,7 @@ full_results %>%
 # Export avec write_csv (filtrer ceux significatifs)
 
 ```{r}
-filter(full_results, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+filter(full_results, adj.P.Val < 0.05, abs(logFC) > log2(1.5)) %>%
   write_csv(path=paste0(my_id,"_filtered_significant_results.csv"))
 ```
 
