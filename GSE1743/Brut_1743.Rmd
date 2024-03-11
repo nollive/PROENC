@@ -203,8 +203,14 @@ order_rows <- order(sampleInfo$GSM)
 corMatrix_ordered <- corMatrix[order_rows, order_rows]
 
 # Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
-pheatmap(corMatrix_ordered, annotation_col = annotations)
+heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
+         annotation_col = annotations,
+         main = paste0(my_id,' - Heatmap - GSM with outliers'))
+
+
+save_pheatmap_pdf(heatmapGSM_nofiltr, paste0(my_id,'_heatmap-GSM-with-outliers.pdf'))
 ```
+
 
 # ACP
 ```{r}
@@ -223,7 +229,8 @@ cbind(sampleInfo, pca$x) %>%
 ggplot(aes(x = PC1, y=PC2, col=Group_short,label=GSM)) + 
   geom_point() + 
   geom_text_repel() +
-  labs(x = PC1_t , y = PC2_t, color = "Time")
+  labs(x = PC1_t , y = PC2_t, color = "Treatment") +
+  labs(title = paste0(my_id, ' - PCA - GSM') )
 ```
 
 ```{r}
@@ -234,23 +241,28 @@ ggplot(aes(x = PC1, y=PC2, col=Group_short,label=GSM)) +
 ```
 ## Suppression des outliers
 ```{r}
+# A refaire proprement mais fonctionne
 GSM_outliers <- c("GSM30454")
-data_outliers <- data_filtr[!data_filtr$geo_accession %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+GSM_keep <- c("GSM30418", "GSM30419", "GSM30420", "GSM30421", "GSM30422", "GSM30423", "GSM30424", "GSM30425", "GSM30426", "GSM30427", "GSM30428", "GSM30429", "GSM30430", "GSM30431", "GSM30432", "GSM30433", "GSM30434", "GSM30435", "GSM30436", "GSM30437", "GSM30438", "GSM30439", "GSM30440", "GSM30441", "GSM30442", "GSM30443", "GSM30444", "GSM30445", "GSM30446", "GSM30447","GSM30448", "GSM30449", "GSM30450", "GSM30451", "GSM30452", "GSM30453", "GSM30455", "GSM30456", "GSM30457","GSM30458")
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_out)
+dim(data_filtr)
+
+
+
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
-
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
 heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
-         annotation = annotations)
+         annotation_col = annotations,
+         main = paste0(my_id, ' - Heatmap - Without outlier (GSM30454)'))
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-outliers.pdf'))
+
+#Si cela nous convient:
+data_filtr <- data_outliers
+
+#Modification de sampleInfo:
+sampleInfo <- sampleInfo[ GSM_keep,]
+dim(sampleInfo)
 ```
 
 
@@ -347,7 +359,8 @@ geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
   geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
              linetype = "dashed")+
-scale_color_manual(values=c("gold", "blue", "grey"))
+scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, " - Volcano plot - 20 genes of tolerance (Baron et al. 2015)"))
 ```
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 
@@ -364,7 +377,8 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, " - Volcano plot - Top 20 genes "))
 
 ```
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
@@ -381,8 +395,8 @@ full_results %>%
   geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
              linetype = "dashed")+
   scale_color_manual(values=c("gold", "blue", "grey")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) 
-
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015)")
 #Problèmes --> non affichés??
 ```
 
@@ -415,11 +429,12 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
 gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
 write.csv(gene_matrix_top, file=paste0(my_id,"_filtered_results_topN_genes.csv"))
 
-##Affichage de la heatmpa des topN genes
+##Affichage de la heatmap des topN genes
 heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
-     annotation = annotations)
+     annotation_col = annotations,
+     main = paste0(my_id, ' - Heatmap - Top 20 genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 
@@ -447,7 +462,8 @@ rownames(sampleInfo) <- colnames(Baron_gene_matrix)
 heatmap_20_genes <- pheatmap(Baron_gene_matrix,
          labels_row = Baron_gene_names,
          annotation_col= annotations,
-         scale="row")
+         scale="row",
+         main = paste0(my_id, ' - Heatmap - 20 genes of tolerance (Baron et al. 2015)'))
 
 save_pheatmap_pdf(heatmap_20_genes, paste0(my_id,'_heatmap_20_genes.pdf'))
 ```
@@ -456,8 +472,6 @@ save_pheatmap_pdf(heatmap_20_genes, paste0(my_id,'_heatmap_20_genes.pdf'))
 ```{r}
 #6 GENES (DANGER 2017)
 Danger_genes <- c("AKR1C3", "CD40","CTLA4","ID3", "MZB1", "TCL1A")
-#my_genes <- c("MS4A1", "BANK1")
-#my_genes <- c("CD40","ID3", "MZB1", "TCL1A") #CTLA4/AKR1C3 marche pas??
 
 Danger_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>% 
   pull(ID)
@@ -467,7 +481,6 @@ Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 
 
 #Affichage
-#rownames(sampleInfo) <- colnames(Danger_gene_matrix)
 Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
 write.csv(x = Danger_gene_matrix, file=paste0(my_id,"_filtered_results_6_genes.csv"))
 
@@ -475,6 +488,7 @@ write.csv(x = Danger_gene_matrix, file=paste0(my_id,"_filtered_results_6_genes.c
 heatmap_6_genes <- pheatmap(Danger_gene_matrix,
          labels_row = Danger_gene_names,
          annotation_col= annotations,
+         main = paste0(my_id, ' - Heatmap - 6 genes of tolerance (Danger et al. 2017)'),
          scale="row")
 
 save_pheatmap_pdf(heatmap_6_genes, paste0(my_id,'_heatmap_6_genes.pdf'))
@@ -487,19 +501,19 @@ library("clusterProfiler")
 library(org.Hs.eg.db)
 library(DOSE)
 # on rapelle que p_cutoff <- 0.05 
-# et fc_cutoff <- 1 
+# et fc_cutoff <- log2(1.5)
 
-
-DiffGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & abs(full_results$logFC) > fc_cutoff, ]
+DiffGenes <- full_results[ full_results$gene_type == 'up' | full_results$gene_type == 'down', ]
 dim(DiffGenes)
-UpGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC > fc_cutoff, ]
+UpGenes  <- full_results[ full_results$gene_type == 'up' , ]
 dim(UpGenes)
-DownGenes <- full_results[ full_results$adj.P.Val  < p_cutoff & full_results$logFC < -fc_cutoff, ]
+DownGenes <- full_results[ full_results$gene_type == 'down', ]
 dim(DownGenes)
 
 DiffGenesSymb <- DiffGenes$GENE_SYMBOL
 length(DiffGenesSymb)
 UpGenesSymb <- UpGenes$GENE_SYMBOL
+length(UpGenesSymb)
 DownGenesSymb <- DownGenes$GENE_SYMBOL
 geneList <- features$GENE_SYMBOL
 length(geneList)
@@ -517,8 +531,8 @@ ego <- enrichGO(gene         = UpGenesSymb,
                 #qvalueCutoff  = 0.5,
                 minGSSize=5)
 
-head(ego)
 dim(ego)
+head(ego)
 data.frame(ego)
 
 
