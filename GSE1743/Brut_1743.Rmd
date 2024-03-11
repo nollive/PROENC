@@ -200,7 +200,7 @@ corMatrix_ordered <- corMatrix[order_rows, order_rows]
 
 # Créer la heatmap en utilisant pheatmap avec les lignes ordonnées
 heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
-         annotation_col = new_df,
+         annotation_col = annotations,
          main = paste0(my_id,' - Heatmap - GSM with outliers'))
 
 
