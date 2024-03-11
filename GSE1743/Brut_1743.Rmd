@@ -190,11 +190,7 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 
 # Création de notre vecteur annotations pour les heatmaps
-annotations <- sampleInfo[, c("Group_short", "Group_short")]
-
-#Affichaque de la heatmap
-pheatmap(corMatrix,
-         annotation_col=annotations)    
+annotations = subset(sampleInfo, select = Group_short)
 
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
@@ -202,9 +198,9 @@ order_rows <- order(sampleInfo$GSM)
 # Réorganiser les lignes de la matrice de corrélation
 corMatrix_ordered <- corMatrix[order_rows, order_rows]
 
-# Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
+# Créer la heatmap en utilisant pheatmap avec les lignes ordonnées
 heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
-         annotation_col = annotations,
+         annotation_col = new_df,
          main = paste0(my_id,' - Heatmap - GSM with outliers'))
 
 
@@ -338,9 +334,11 @@ full_results <- topTable(fit2, number=Inf)
 full_results <- tibble::rownames_to_column(full_results,"ID")
 View(full_results)
 
+# AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
+fc_cutoff <- log2(1.5)
 full_results <- full_results %>%
-  mutate(gene_type = case_when(logFC >= log2(1.5) & adj.P.Val <= 0.05 ~ "up",
-                               logFC <= -log2(1.5) & adj.P.Val <= 0.05 ~ "down",
+  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
                                TRUE ~ "ns")) 
 
 cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
@@ -350,14 +348,11 @@ full_results <- full_results %>%
 
 # Volcano plots
 ```{r}
-p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
-fc_cutoff <- 1 #IDEM
-
 full_results %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
 geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
-  geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
 scale_color_manual(values=c("gold", "blue", "grey"))+
   labs(title=paste0(my_id, " - Volcano plot - 20 genes of tolerance (Baron et al. 2015)"))
@@ -375,7 +370,7 @@ full_results %>%
   geom_text_repel(col = "black", max.overlaps = 25)  + 
   geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
-  geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold", "blue", "grey"))+
   labs(title=paste0(my_id, " - Volcano plot - Top 20 genes "))
@@ -392,7 +387,7 @@ full_results %>%
   geom_point() + 
   geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
-  geom_vline(xintercept = c(-log2(1.5), log2(1.5)),
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold", "blue", "grey")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
