@@ -4,46 +4,50 @@ output: html_notebook
 ---
 
 ```{r eval=false}
-#Library####
 library(affycoretools)
 library(RColorBrewer)
-library(oligo)
-library(ggplot2)
 library(readxl)
+library(UpSetR)
+library(gplots)
+library(ggupset)
+library(ggrepel)
+library(ggplot2)
+library(pheatmap)
 library(GEOquery)
 library(readr)
-library(dplyr)
-library(pheatmap)
-library(ggrepel)
-#library(FactoMineR)
+library(FactoMineR)
+library(forcats)
+library(heatmap3)
+library(Biobase)
+library(tools)
+library(AnnotationDbi)
+library(ade4)
+library(ALL)
+library(gcrma)
 library(limma)
-
-
-library("annotate")
-library("heatmap3")
-library("Biobase")
-library("tools")
-library("AnnotationDbi")
-library("annotate")
-library("heatmap3")
-library("ade4")
-library("ALL")
-library("gplots")
-library("ALL")
-library("ade4")
-library('gcrma')
-library("RVAideMemoire")
-library("affy")
-library("pd.huex.1.0.st.v2")
-
-#library("mixOmics")
-
-#library("hugene10sttranscriptcluster")
-#library("huex10sttranscriptcluster.db")
-#library("hgu133plus2.db")
-#library(hugene10stv1cdf)
+library(oligo)
+library(affy)
+library(genefilter)
+library(RVAideMemoire)
+library(enrichplot)
+library(annotate)
+library(Affyhgu133aExpr)
 library(hgu133a.db)
+library(pd.huex.1.0.st.v2)
 library(pd.ht.hg.u133.plus.pm)
+
+
+library(dplyr)
+
+# Fonction pour enregistrer les pheatmap (https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file)
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+    stopifnot(!missing(x))
+    stopifnot(!missing(filename))
+    pdf(filename, width=width, height=height)
+    grid::grid.newpage()
+    grid::grid.draw(x$gtable)
+    dev.off()
+}
 
 ```
 
