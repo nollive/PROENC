@@ -167,7 +167,7 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                  xlab = "Median intensities")
 }
 
-data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+#data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 
 
 ##### END import #####

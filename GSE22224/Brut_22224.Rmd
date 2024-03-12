@@ -178,7 +178,7 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                  xlab = "Median intensities")
 }
 
-data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+#data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 
 
 ##### END import #####
@@ -215,8 +215,9 @@ colnames(corMatrix)
 ## Sinon, on peut forcer avec le code suivant
 rownames(sampleInfo) <- colnames(corMatrix)
 
-# Supprimer les colonnes non nécessaires de sampleInfo
-annotations <- sampleInfo[, c("Patient", "Treatment")]
+
+# Création de notre vecteur annotations pour les heatmaps
+annotations = subset(sampleInfo, select = Group_short)
 
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
@@ -224,8 +225,13 @@ order_rows <- order(sampleInfo$GSM)
 # Réorganiser les lignes de la matrice de corrélation
 corMatrix_ordered <- corMatrix[order_rows, order_rows]
 
-# Créer le heatmap en utilisant pheatmap avec les lignes ordonnées
-pheatmap(corMatrix_ordered, annotation_col = annotations)
+# Créer la heatmap en utilisant pheatmap avec les lignes ordonnées #ne fonctionne pas pour l'instant
+heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
+         annotation_col = annotations,
+         main = paste0(my_id,' - Heatmap - GSM with outliers'))
+
+
+save_pheatmap_pdf(heatmapGSM_nofiltr, paste0(my_id,'_heatmap-GSM-with-outliers.pdf'))
 ```
 
 ## Suppression des outliers
@@ -455,16 +461,48 @@ full_results_DIFF <- topTable(fit2, coef=comparisonDIFF, adjust.method="BH", num
 full_results_CSA <- tibble::rownames_to_column(full_results_CSA,"ID")
 full_results_SRL <- tibble::rownames_to_column(full_results_SRL,"ID")
 full_results_DIFF <- tibble::rownames_to_column(full_results_DIFF,"ID")
-#full_results <- tibble::rownames_to_column(full_results,"ID")
 
 View(full_results_CSA)
-#View(full_results)
 ```
+# Visualisation des resultat de la differencial expression
 
-## Affichage des volcano plots
 ```{r}
-p_cutoff <- 0.05 #CHANGER LE CUTOFF DE LA P-VALUE SI ON VEUX
-fc_cutoff <- 1 #IDEM
+
+# AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
+fc_cutoff <- log2(1.5)
+p_cutoff <- 0.05
+
+## CSA - HV
+full_results_CSA <- full_results_CSA %>%
+  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+                               TRUE ~ "ns")) 
+
+cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
+full_results_CSA <- full_results_CSA %>%
+  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
+
+
+## SRL - HV
+full_results_SRL <- full_results_SRL %>%
+  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+                               TRUE ~ "ns")) 
+
+cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
+full_results_SRL <- full_results_SRL %>%
+  mutate(gene_type = fct_relevel(gene_type, "up", "down"))
+
+
+## CSA - SRL 
+full_results_DIFF <- full_results_DIFF %>%
+  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+                               TRUE ~ "ns")) 
+
+cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
+full_results_DIFF <- full_results_DIFF %>%
+  mutate(gene_type = fct_relevel(gene_type, "up", "down"))
 ```
 
 ## CSA vs HV
