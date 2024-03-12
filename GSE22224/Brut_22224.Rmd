@@ -136,8 +136,9 @@ which(fData(eset)$SYMBOL == geneName )
 #head(fData(eset))
 
 
+
 # filtration:
-eset_medians <- rowMedians(Biobase::exprs(eset))
+eset_medians <- rowMedians(Biobase::exprs(gse))
 hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
                  border = "antiquewhite4",
@@ -147,38 +148,40 @@ man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
-length(which((rowMedians(exprs(eset)) >= man_threshold) == "TRUE"))
+length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
 
 #Filtration selon la médiane d'expression (enleve aussi les NA)
-data_filtr  <- eset[rowMedians(exprs(eset)) >= man_threshold,]
-colnames(data_filtr) <- pData(data_filtr)$GSM
+data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$geo_accession
 dim(data_filtr)
-dim(eset)
+dim(gse)
 
 #Rassemble tout dans un dataset
-concat <- cbind(fData(data_filtr), exprs(data_filtr))
-dim(concat)
+total <- cbind(fData(data_filtr), exprs(data_filtr))
+dim(total)
 
 #Export des données d'expression
-#write.table(concat, file="c-affy-Norm-Glomeruli-8April21.txt", sep="\t")
+#write.table(total, file=paste0("Données d'expression du ",gse_id), sep="\t")
 
-
-##enlever gene sans Symbol: #### -> Mauvaise annotation
-length(which(is.na(fData(data_filtr)$SYMBOL) ==T ))
-index <- which(is.na(fData(data_filtr)$SYMBOL) ==T )
+# Suppression des genes mal annotés -> ne fonctionne pas pour l'instant
+if (length(which(is.na(fData(data_filtr)$"Gene Symbol"))) != 0 ){
+index <- which(is.na(fData(data_filtr)$"Gene Symbol"))
 sansNA <- data_filtr[-index, ]
-length(which(is.na(fData(sansNA)$SYMBOL) ==T ))
+length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
 dim(sansNA)
-dim(eset)
 dim(data_filtr)
-
+data_filtr <- sansNA
 sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
 hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
-                 border = "antiquewhite4",
+                border = "antiquewhite4",
                  xlab = "Median intensities")
-##### END import #####
+}
 
+data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+
+
+##### END import #####
 ```
 ## Analyse
 ```{r}
@@ -229,73 +232,85 @@ pheatmap(corMatrix_ordered, annotation_col = annotations)
 ```{r}
 #On remarque que le GSM553485 (HV), GSM553459 (CsA), GSM553458 (SRL) sont peu correlés aux restes des échantillons (probablement du à un effet batch, on décide de faire notre analse avec et sans ces samples.
 
+# ENLEVER SRL
 GSM_outliers <- c("GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_outliers)
+dim(data_filtr)
+
+
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
+heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+         annotation_col = annotations,
+         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
+save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA.pdf'))
 
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
 
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
 
 
 # Enlever HV et CsA
 GSM_outliers <- c("GSM553485", "GSM553459")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_outliers)
+dim(data_filtr)
+
+
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+         annotation_col = annotations,
+         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
+save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-HV.pdf'))
 
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
 
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
 
 #Enlever HV et SRL
 GSM_outliers <- c("GSM553485", "GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_outliers)
+dim(data_filtr)
+
+
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+         annotation_col = annotations,
+         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
-
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
-
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
+save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-SRL-HV.pdf'))
 
 
 #Enlever les 3
 GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
-data_outliers <- data_filtr[!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_outliers)
+dim(data_filtr)
+
+
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-#corMatrix_outliers <- corMatrix_outliers [!data_filtr$GSM %in% GSM_outliers, ] #ne fonctionne pas pour l'instant
+heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+         annotation_col = annotations,
+         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
-#Indices des colonnes à supprimer
-colonnes_outliers <- which(colnames(corMatrix_outliers) %in% GSM_outliers)
+save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-SRL-HV.pdf'))
 
-# Indices des lignesà supprimer
-lignes_outliers <- which(rownames(corMatrix_outliers) %in% GSM_outliers)
 
-#Suppression des lignes et colonnes associés aux outliers
-corMatrix_outliers <- corMatrix_outliers[-lignes_outliers, -colonnes_outliers]
-pheatmap(corMatrix_outliers,
-         annotation = annotations)
+## On choisi les outliers à enlever qui nous conviennent 
+GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+data_outliers <- data_filtr[, GSM_keep]
+dim(data_outliers)
+dim(data_filtr)
+#Si cela nous convient:
+data_filtr <- data_outliers
+
+#Modification de sampleInfo:
+sampleInfo <- sampleInfo[ GSM_keep,]
+dim(sampleInfo)
 ```
 
 # Export

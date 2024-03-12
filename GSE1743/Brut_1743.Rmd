@@ -5,6 +5,8 @@ output: html_notebook
 
 ```{r eval=false}
 #Library####
+library(genefilter)
+library(Affyhgu133aExpr)
 library(forcats)
 library(GEOquery)
 library(readr)
@@ -13,11 +15,11 @@ library(pheatmap)
 library(limma)
 library(RColorBrewer)
 library(ggplot2)
-library(dplyr)
 library(oligo)
 library(UpSetR)
 library(ggupset)
 library(enrichplot)
+library(dplyr)
 
 library("annotate")
 library("heatmap3")
@@ -119,7 +121,6 @@ View(sampleInfo)
 
 
 ```{r}
-
 # Vérification de la bonne annotation
 geneName = "GAPDH"
 which(fData(gse)$"Gene Symbol" == geneName )
@@ -166,6 +167,8 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                  xlab = "Median intensities")
 }
 
+data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+
 
 ##### END import #####
 ```
@@ -198,7 +201,7 @@ order_rows <- order(sampleInfo$GSM)
 # Réorganiser les lignes de la matrice de corrélation
 corMatrix_ordered <- corMatrix[order_rows, order_rows]
 
-# Créer la heatmap en utilisant pheatmap avec les lignes ordonnées
+# Créer la heatmap en utilisant pheatmap avec les lignes ordonnées #ne fonctionne pas pour l'instant
 heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
          annotation_col = annotations,
          main = paste0(my_id,' - Heatmap - GSM with outliers'))
@@ -239,9 +242,10 @@ ggplot(aes(x = PC1, y=PC2, col=Group_short,label=GSM)) +
 ```{r}
 # A refaire proprement mais fonctionne
 GSM_outliers <- c("GSM30454")
-GSM_keep <- c("GSM30418", "GSM30419", "GSM30420", "GSM30421", "GSM30422", "GSM30423", "GSM30424", "GSM30425", "GSM30426", "GSM30427", "GSM30428", "GSM30429", "GSM30430", "GSM30431", "GSM30432", "GSM30433", "GSM30434", "GSM30435", "GSM30436", "GSM30437", "GSM30438", "GSM30439", "GSM30440", "GSM30441", "GSM30442", "GSM30443", "GSM30444", "GSM30445", "GSM30446", "GSM30447","GSM30448", "GSM30449", "GSM30450", "GSM30451", "GSM30452", "GSM30453", "GSM30455", "GSM30456", "GSM30457","GSM30458")
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+
 data_outliers <- data_filtr[, GSM_keep]
-dim(data_out)
+dim(data_outliers)
 dim(data_filtr)
 
 
@@ -249,7 +253,7 @@ dim(data_filtr)
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
 heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
          annotation_col = annotations,
-         main = paste0(my_id, ' - Heatmap - Without outlier (GSM30454)'))
+         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-outliers.pdf'))
 
@@ -336,6 +340,9 @@ View(full_results)
 
 # AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
 fc_cutoff <- log2(1.5)
+p_cutoff <- 0.05
+
+
 full_results <- full_results %>%
   mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
                                logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
@@ -350,18 +357,17 @@ full_results <- full_results %>%
 ```{r}
 full_results %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
-geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - 20 genes of tolerance (Baron et al. 2015)"))
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, " - Volcano plot"))
+ggsave(paste0(my_id,'-Volcano-plot.pdf'))
 ```
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 
 ```{r}
-p_cutoff <- 0.05
-fc_cutoff <- 1
+
 topN <- 20 #Nombre de genes affichés sur le graphe
 full_results %>% 
   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
@@ -373,7 +379,9 @@ full_results %>%
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Top 20 genes "))
+  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes '))
+ggsave(paste0(my_id,'-Volcano-Top20-plot.pdf'))
+
 
 ```
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
@@ -392,13 +400,15 @@ full_results %>%
   scale_color_manual(values=c("gold", "blue", "grey")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
   labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015)")
-#Problèmes --> non affichés??
+ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL.pdf'))
+
+
 ```
 
 # Export avec write_csv (filtrer ceux significatifs)
 
 ```{r}
-filter(full_results, adj.P.Val < 0.05, abs(logFC) > log2(1.5)) %>%
+filter(full_results, adj.P.Val < 0.05, abs(logFC) > fc_cutoff ) %>%
   write_csv(path=paste0(my_id,"_filtered_significant_results.csv"))
 ```
 
@@ -415,7 +425,7 @@ top_ids_of_interest <- mutate(full_results, Rank = 1:n()) %>%
   filter(Rank < topN) %>% 
   pull(ID)
 
-#On recupère le nom des top 20 genes
+#On recupère le nom des top N genes
 top_gene_names <- mutate(full_results, Rank = 1:n()) %>% 
   filter(Rank < topN) %>% 
   pull(GENE_SYMBOL) 
@@ -429,7 +439,7 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
      annotation_col = annotations,
-     main = paste0(my_id, ' - Heatmap - Top 20 genes'))
+     main = paste0(my_id, ' - Heatmap - Top ',topN,' 20 genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 
