@@ -4,6 +4,7 @@ output: html_notebook
 ---
 
 ```{r eval=false}
+library(dbplyr)
 library(affycoretools)
 library(RColorBrewer)
 library(readxl)
@@ -15,7 +16,7 @@ library(ggplot2)
 library(pheatmap)
 library(GEOquery)
 library(readr)
-library(FactoMineR)
+#library(FactoMineR)
 library(forcats)
 library(heatmap3)
 library(Biobase)
@@ -31,7 +32,7 @@ library(genefilter)
 library(RVAideMemoire)
 library(enrichplot)
 library(annotate)
-library(Affyhgu133aExpr)
+#library(Affyhgu133aExpr)
 library(hgu133a.db)
 library(pd.huex.1.0.st.v2)
 library(pd.ht.hg.u133.plus.pm)
@@ -119,17 +120,20 @@ eset <- oligo::rma(rawAffyData) #Normalization entre les puces
 
 
 # annotate: #### Selon la puce, changer le package d'annotation
-library(hgu133plus2.db)
-eset <-annotateEset(eset,hgu133plus2.db)
+# library("pd.ht.hg.u133.plus.db")
+# eset <-annotateEset(eset,pd.ht.hg.u133.plus.db)
+geoFile<-getGEO(my_id)
+fData(eset) <- fData(geoFile$GSE145408_series_matrix.txt.gz)
+colnames(fData(eset))
 
 # Vérification de la bonne annotation
 geneName = "GAPDH"
-which(fData(eset)$SYMBOL == geneName )
+which(fData(eset)$"Gene Symbol" == geneName )
 #head(fData(eset))
 
 
 # filtration:
-eset_medians <- rowMedians(Biobase::exprs(gse))
+eset_medians <- rowMedians(Biobase::exprs(eset))
 hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
                  border = "antiquewhite4",
@@ -139,13 +143,13 @@ man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
-length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
+length(which((rowMedians(exprs(eset)) >= man_threshold) == "TRUE"))
 
 #Filtration selon la médiane d'expression (enleve aussi les NA)
-data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
-colnames(data_filtr) <- pData(data_filtr)$geo_accession
+data_filtr  <- eset[rowMedians(exprs(eset)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$GSM
 dim(data_filtr)
-dim(gse)
+dim(eset)
 
 #Rassemble tout dans un dataset
 total <- cbind(fData(data_filtr), exprs(data_filtr))
@@ -168,7 +172,7 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                 border = "antiquewhite4",
                  xlab = "Median intensities")
 }
-
+dim(data_filtr)
 #data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 
 
@@ -240,17 +244,11 @@ features <- fData(data_filtr)
 colnames(features)
 
 ## Pour garder que certaines features
-features <- dplyr::select(features,"SYMBOL","GENENAME","ENTREZID")
+features <- dplyr::select(features,"Gene Symbol","Gene Title","ENTREZ_GENE_ID")
 
-features %>% 
-  rename(features, GENE_SYMBOL = SYMBOL,
-         GENE_TITLE = GENENAME)
-
-
-#Renommer les features (pour visualisation ensuite, il faut enlever les espaces)
 features <- features %>% 
-  rename(features, GENE_SYMBOL = `SYMBOL`,
-         GENE_TITLE = `GENENAME`)
+  dplyr::rename(GENE_SYMBOL = `Gene Symbol`,
+  GENE_TITLE = `Gene Title`)
 
 #Affichage de features
 View(features)
@@ -261,100 +259,109 @@ write_csv(full_output, path="gse_full_output.csv")
 ```
 
 
-## Differential Expression
-
-# Création de notre matrice design et constrast
-```{r}
-# Création des données de design 
-design_data <- data.frame(
-  Patient = "",
-  GSM =  rownames(pData(data_filtr)),
-  Time = "" 
-)
-
-## Attention, vérifier que les GSM sont dans le bon ordre !
-View(design_data)
-
-
-##Création de la matrice de design 
-# ici on compare no withdrawal (N=4) and Tac withdrawal (N=14) + 3months post withdrawal
-#il y a No withdrawal (NW), withrawal stable (WS) et withdrawal rejection (WR)
-design <- model.matrix(~0+ Time+Patient, data = design_data) 
-
-# Afficher la matrice de design
-print(design)
-```
-
 
 # ACP
 ```{r}
-
 ## Attention à bien avoir transposé la matrice d'expression sinon PCA en fonction des individus et non de l'expression des genes
 
 #PCA classique
 pca <- prcomp(t(exprs(data_filtr)))
 
+PoV <- pca$sdev^2/sum(pca$sdev^2)
+PoV <- PoV * 100
+PoV <- substr(PoV,1,4)
+PC1_t = paste0("PC1 (", PoV[1] , "%)")
+PC2_t = paste0("PC2 (", PoV[2] ,"%)")
 ##Rajouter les informations des patients
 cbind(sampleInfo, pca$x) %>% 
-ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) + 
+ggplot(aes(x = PC1, y=PC2, col=Group,label=GSM)) + 
   geom_point() + 
-  geom_text_repel()
+  geom_text_repel() +
+  labs(x = PC1_t , y = PC2_t, color = "Treatment") +
+  labs(title = paste0(my_id, ' - PCA - GSM') )
 ```
 
 ```{r}
 #PCA en utilisant FactoMineR
-pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+#pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
 
 ```{r} 
 ## A MODIFIER
-
-##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
-# Plot PCA
-
-# Création de notre dataframe pour l'affichage de l'ACP
-df_pca <- data.frame(
-  Patient = sampleInfo$GSM,
-  Time = sampleInfo$Group,
-  PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
-  PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
-)
-
-
-# Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
-df_arrows <- df_pca %>%
-  mutate(PC1_end = lead(PC1),
-         PC2_end = lead(PC2)) %>%
-  filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
-
-
-#Titre des axes
-PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
-PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
-
-
-# Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
-pca_plot <- ggplot(
-  df_pca, aes(x = PC1, y = PC2, color = Time)) +
-  geom_point(size = 3) +
-  geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ], 
-               aes(xend = PC1_end, yend = PC2_end),
-               arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
-  geom_text(aes(label = Patient), vjust = -1) +
-  geom_hline(yintercept = 0, linetype = "dotted") +
-  geom_vline(xintercept = 0, linetype = "dotted") +
-  ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
-  labs(x = PC1_t , y = PC2_t, color = "Time") +
-  theme_minimal()
-
-
-# Afficher le plot de l'ACP
-print(pca_plot)
+# 
+# ##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
+# # Plot PCA
+# 
+# # Création de notre dataframe pour l'affichage de l'ACP
+# df_pca <- data.frame(
+#   Patient = sampleInfo$GSM,
+#   Time = sampleInfo$Group,
+#   PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
+#   PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
+# )
+# 
+# 
+# # Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
+# df_arrows <- df_pca %>%
+#   mutate(PC1_end = lead(PC1),
+#          PC2_end = lead(PC2)) %>%
+#   filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
+# 
+# 
+# #Titre des axes
+# PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
+# PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
+# 
+# 
+# # Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
+# pca_plot <- ggplot(
+#   df_pca, aes(x = PC1, y = PC2, color = Time)) +
+#   geom_point(size = 3) +
+#   geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ], 
+#                aes(xend = PC1_end, yend = PC2_end),
+#                arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
+#   geom_text(aes(label = Patient), vjust = -1) +
+#   geom_hline(yintercept = 0, linetype = "dotted") +
+#   geom_vline(xintercept = 0, linetype = "dotted") +
+#   ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
+#   labs(x = PC1_t , y = PC2_t, color = "Time") +
+#   theme_minimal()
+# 
+# 
+# # Afficher le plot de l'ACP
+# print(pca_plot)
 ```
 
 
-## Etablissement de la différential expression
+## Differential Expression
+
+# Création de notre matrice design et constrast
+```{r}
+
+sampleInfo <- sampleInfo %>%
+  mutate(method = case_when(Group == "NW" ~ "NoWithdrawal",
+                                Group == "WR" | Group == "WS" ~ "Withdrawal")) 
+
+
+sampleInfo <- sampleInfo %>%
+  mutate(method = fct_relevel(method, "NoWithdrawal", "Withdrawal")) 
+
+
+##Création de la matrice de design 
+# ici on compare no withdrawal (N=4) and Tac withdrawal (N=14) + 3months post withdrawal
+design <- model.matrix(~0+ method, data = sampleInfo) 
+
+# Afficher la matrice de design
+print(design)
+
+
+## Si on fait Csa vs SRL
+comparison <- "DiffNW-WD"
+contrasts <- makeContrasts( Comparaison= methodNoWithdrawal - methodWithdrawal, levels = design)
+
+
+```
 
 # lmFit
 ```{r}
@@ -362,23 +369,12 @@ fit <- lmFit(exprs(data_filtr), design)
 
 #Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
 head(fit$coefficients)
-```
-
-
-#Définition de nos contrasts pour la differencial expression
-
-```{r}
-## Si on fait T0 contre T1
-contrasts <- makeContrasts( Comparaison=TimeT0 - TimeT1, levels = design)
 
 # On applique nos constrasts 
 fit2 <- contrasts.fit(fit, contrasts)
 fit2
 
-```
-
 # On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
-```{r}
 fit2 <- eBayes(fit2)
 
 # Résultats avec topTable
@@ -405,16 +401,15 @@ p_cutoff <- 0.05
 
 
 full_results <- full_results %>%
-  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+  dplyr::mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
                                logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
                                TRUE ~ "ns")) 
 
 cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
-full_results <- full_results %>%
-  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
+#???
+# full_results <- full_results %>%
+#   dplyr::mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
 ```
-
-
 
 # Volcano plots
 ```{r}
@@ -561,6 +556,7 @@ heatmap_6_genes <- pheatmap(Danger_gene_matrix,
 
 save_pheatmap_pdf(heatmap_6_genes, paste0(my_id,'_heatmap_6_genes.pdf'))
 ```
+
 
 # Gene Ontology Term Enrichment analysis
 ```{r}
