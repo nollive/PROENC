@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 ```{r eval=false}
-library(affycoretools)
+
 library(RColorBrewer)
 library(readxl)
 library(UpSetR)
@@ -31,10 +31,11 @@ library(genefilter)
 library(RVAideMemoire)
 library(enrichplot)
 library(annotate)
-library(Affyhgu133aExpr)
+#library(Affyhgu133aExpr)
 library(hgu133a.db)
 library(pd.huex.1.0.st.v2)
 library(pd.ht.hg.u133.plus.pm)
+library(affycoretools)
 
 
 library(dplyr)
@@ -400,7 +401,6 @@ full_results %>%
   labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015)")
 ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL.pdf'))
 
-
 ```
 
 # Export avec write_csv (filtrer ceux significatifs)
@@ -522,9 +522,12 @@ geneList <- features$GENE_SYMBOL
 length(geneList)
 
 keytypes(org.Hs.eg.db)
+```
 
 
-ego <- enrichGO(gene         = UpGenesSymb,
+```{r}
+## UP GENES
+ego_UP <- enrichGO(gene         = UpGenesSymb,
                 universe = geneList,
                 OrgDb         = org.Hs.eg.db,
                 keyType       = 'SYMBOL',
@@ -534,34 +537,136 @@ ego <- enrichGO(gene         = UpGenesSymb,
                 #qvalueCutoff  = 0.5,
                 minGSSize=5)
 
-dim(ego)
-head(ego)
-data.frame(ego)
+
+head(ego_UP)
+data.frame(ego_UP)
 
 
-SelGO <- ego[which(ego$p.adjust  < 0.05 & ego$Count > 5),]
+SelGO_UP <- ego_UP[which(ego_UP$p.adjust  < 0.05 & ego_UP$Count > 5),]
 
-barplot(ego)
-barplot(ego, showCategory= dim(SelGO)[1] )
-barplot(ego, showCategory= 10)
+barplot(ego_UP)
+barplot(ego_UP, showCategory= dim(SelGO_UP)[1] )
+barplot(ego_UP, showCategory= 10)
 
-write.table(data.frame(ego), file =paste("c-GO-", comparison, "-Down_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+write.table(data.frame(ego_UP), file =paste("c-GO-", comparison, "-UP_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
 
-ego2 <- clusterProfiler::simplify(ego, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2)
+ego2_UP <- clusterProfiler::simplify(ego_UP, cutoff=0.8, by="p.adjust", select_fun=min)
+barplot(ego2_UP)
 
 jpeg(paste("h-GO-UP", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
 dev.off()
-#plotGOgraph(ego)
-upsetplot(ego)
-#cnetplot(ego, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
-cnetplot(ego, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+#plotGOgraph(ego_UP)
+upsetplot(ego_UP)
+#cnetplot(ego_UP, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+cnetplot(ego_UP, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
 
 
+heatplot(ego_UP, showCategory = 25) #, foldChange = DiffGenes$logFC)
+heatplot(ego_UP,showCategory = 25, foldChange = DiffGenes$logFC)
 
-heatplot(ego, showCategory = 25) #, foldChange = DiffGenes$logFC)
-heatplot(ego,showCategory = 25, foldChange = DiffGenes$logFC)
+#emapplot(ego_UP)
 
+cnetplot(ego_UP, foldChange=geneList)
+
+```
+
+
+```{r}
+## DOWN GENES
+ego_DOWN <- enrichGO(gene         = DownGenesSymb,
+                universe = geneList,
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                #qvalueCutoff  = 0.5,
+                minGSSize=5)
+
+if (dim(ego_DOWN)[1] == 0){print("Pas de GO analysis pour les genes sous-exprimés")}
+
+# head(ego_DOWN)
+# data.frame(ego_DOWN)
+# 
+# 
+# SelGO_DOWN <- ego_DOWN[which(ego_DOWN$p.adjust  < 0.05 & ego_DOWN$Count > 5),]
+# 
+# barplot(ego_DOWN)
+# barplot(ego_DOWN, showCategory= dim(SelGO_DOWN)[1] )
+# barplot(ego_DOWN, showCategory= 10)
+# 
+# write.table(data.frame(ego_DOWN), file =paste("c-GO-", comparison, "-DOWN_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_DOWN <- clusterProfiler::simplify(ego_DOWN, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_DOWN)
+# 
+# jpeg(paste("h-GO-DOWN", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_DOWN)
+# upsetplot(ego_DOWN)
+# #cnetplot(ego_DOWN, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+# cnetplot(ego_DOWN, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_DOWN, showCategory = 25) #, foldChange = DiffGenes$logFC)
+# heatplot(ego_DOWN,showCategory = 25, foldChange = DiffGenes$logFC)
+# 
+# #emapplot(ego_DOWN)
+# 
+# cnetplot(ego_DOWN, foldChange=geneList)
+
+```
+
+
+```{r}
+## DIFF GENES
+ego_DIFF <- enrichGO(gene         = DiffGenesSymb,
+                universe = geneList,
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                #qvalueCutoff  = 0.5,
+                minGSSize=5)
+
+if (dim(ego_DIFF)[1] == 0){print("Pas de GO analysis pour les genes différenciellement exprimés")}
+
+head(ego_DIFF)
+data.frame(ego_DIFF)
+
+
+SelGO_DIFF <- ego_DIFF[which(ego_DIFF$p.adjust  < 0.05 & ego_DIFF$Count > 5),]
+
+barplot(ego_DIFF)
+barplot(ego_DIFF, showCategory= dim(SelGO_DIFF)[1] )
+barplot(ego_DIFF, showCategory= 10)
+
+write.table(data.frame(ego_DIFF), file =paste("c-GO-", comparison, "-DIFF_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+
+ego2_DIFF <- clusterProfiler::simplify(ego_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
+barplot(ego2_DIFF)
+
+jpeg(paste("h-GO-DIFF", comparison, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+dev.off()
+#plotGOgraph(ego_DIFF)
+upsetplot(ego_DIFF)
+#cnetplot(ego_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes$logFC)
+cnetplot(ego_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes$logFC,   fixed = TRUE)
+
+
+heatplot(ego_DIFF, showCategory = 25) #, foldChange = DiffGenes$logFC)
+heatplot(ego_DIFF,showCategory = 25, foldChange = DiffGenes$logFC)
+
+#emapplot(ego_DIFF)
+
+cnetplot(ego_DIFF, foldChange=geneList)
+
+```
+
+
+```{r}
+## ?????
 
 a <- data.frame( DiffGenes$GENE_SYMBOL, DiffGenes$logFC)
 colnames(a) <- c("Symbol","logFC")
@@ -573,8 +678,4 @@ rownames(a) <- a$Symbol
 a <- cbind(as.character(DiffGenes$GENE_SYMBOL, DiffGenes$logFC))
 rownames(a) <- a[,1]
 a <- a[,-1]
-
-emapplot(ego)
-
-cnetplot(ego, foldChange=geneList)
 ```
