@@ -165,9 +165,10 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                 border = "antiquewhite4",
                  xlab = "Median intensities")
 }
-
-#data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
-
+dim(data_filtr)
+library(Affyhgu133aExpr)
+#data_replicates <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+dim(data_replicates)
 
 ##### END import #####
 ```
