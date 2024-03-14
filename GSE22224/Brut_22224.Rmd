@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 ```{r eval=false}
-library(affycoretools)
+
 library(RColorBrewer)
 library(readxl)
 library(UpSetR)
@@ -35,6 +35,7 @@ library(Affyhgu133aExpr)
 library(hgu133a.db)
 library(pd.huex.1.0.st.v2)
 library(pd.ht.hg.u133.plus.pm)
+library(affycoretools)
 
 
 library(dplyr)
@@ -48,6 +49,34 @@ save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
     grid::grid.draw(x$gtable)
     dev.off()
 }
+
+
+remove_duplicate_genes <- function(eset, column_of_symbol, method = "mean") {
+  if (is.data.frame(eset) && !is.null(colnames(eset))) {
+    dups <- dim(eset)[1] - length(unique(eset[, column_of_symbol]))
+
+    if (dups == 0) {
+      eset <- tibble::column_to_rownames(eset, var = column_of_symbol)
+      return(eset)
+    } else {
+      if (method == "mean") {
+        order_index <- apply(eset[, setdiff(colnames(eset), column_of_symbol)], 1, function(x) mean(x, na.rm = TRUE))
+      } else if (method == "sd") {
+        order_index <- apply(eset[, setdiff(colnames(eset), column_of_symbol)], 1, function(x) sd(x, na.rm = TRUE))
+      } else {
+        stop("Méthode non valide.")
+      }
+      
+      eset <- eset[order(order_index, decreasing = TRUE), ]
+      eset <- eset %>% dplyr::distinct(!!sym(column_of_symbol), .keep_all = TRUE) %>%
+        tibble::column_to_rownames(var = column_of_symbol)
+      return(eset)
+    }
+  } else {
+    stop("Le jeu de données est vide ou n'est pas un data frame.")
+  }
+}
+
 ```
 
 
@@ -122,7 +151,7 @@ eset #Voir la puce
 
 ```{r}
 # annotate: #### Selon la puce, changer le package d'annotation
-
+library(hgu133plus2.db)
 eset <-annotateEset(eset,hgu133plus2.db)
 
 # Vérification de la bonne annotation
@@ -133,7 +162,7 @@ which(fData(eset)$SYMBOL == geneName )
 
 
 # filtration:
-eset_medians <- rowMedians(Biobase::exprs(gse))
+eset_medians <- rowMedians(Biobase::exprs(eset))
 hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
                  border = "antiquewhite4",
@@ -143,13 +172,13 @@ man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
-length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
+length(which((rowMedians(exprs(eset)) >= man_threshold) == "TRUE"))
 
 #Filtration selon la médiane d'expression (enleve aussi les NA)
-data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
-colnames(data_filtr) <- pData(data_filtr)$geo_accession
+data_filtr  <- eset[rowMedians(exprs(eset)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$GSM
 dim(data_filtr)
-dim(gse)
+dim(eset)
 
 #Rassemble tout dans un dataset
 total <- cbind(fData(data_filtr), exprs(data_filtr))
@@ -163,8 +192,8 @@ if (length(which(is.na(fData(data_filtr)$"Gene Symbol"))) != 0 ){
 index <- which(is.na(fData(data_filtr)$"Gene Symbol"))
 sansNA <- data_filtr[-index, ]
 length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
-dim(sansNA)
-dim(data_filtr)
+print(dim(data_filtr)-dim(sansNA))
+
 data_filtr <- sansNA
 sansNA_medians <- rowMedians(Biobase::exprs(sansNA))
 hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE, 
@@ -172,9 +201,16 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
                 border = "antiquewhite4",
                  xlab = "Median intensities")
 }
+dim(data_filtr)
 
-#data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 
+# NE FONCTIONNE PAS POUR L'INSTANT
+# featureFilter(data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+# data_duplicates <- remove_duplicate_genes(eset = data_filtr, column_of_symbol = "SYMBOL")
+# dim(data_duplicates)
+#library(pd.hg.u133.plus.2.db)
+#data_duplicates <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+#dim(data_duplicates)
 
 ##### END import #####
 ```
@@ -212,7 +248,7 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 
 # Création de notre vecteur annotations pour les heatmaps
-annotations = subset(sampleInfo, select = Group_short)
+annotations = subset(sampleInfo, select = Treatment)
 
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
@@ -250,7 +286,6 @@ save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA.pdf'))
 
 
 
-
 # Enlever HV et CsA
 GSM_outliers <- c("GSM553485", "GSM553459")
 GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
@@ -262,7 +297,7 @@ dim(data_filtr)
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
 heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
          annotation_col = annotations,
-         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
+         main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-HV.pdf'))
 
@@ -279,7 +314,7 @@ dim(data_filtr)
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
 heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
          annotation_col = annotations,
-         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
+         main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-SRL-HV.pdf'))
 
@@ -295,12 +330,12 @@ dim(data_filtr)
 corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
 heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
          annotation_col = annotations,
-         main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
+         main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-SRL-HV.pdf'))
 
 
-## On choisi les outliers à enlever qui nous conviennent 
+## On choisi les outliers à enlever qui nous conviennent -> ICI LES 3
 GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
 GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
 data_outliers <- data_filtr[, GSM_keep]
@@ -343,29 +378,6 @@ write_csv(full_output, path="gse_full_output.csv")
 ```
 
 
-## Differential Expression
-
-# Création de notre matrice design et constrast
-```{r}
-# Création des données de design 
-design_data <- data.frame(
-  Patient = c(1:46),  # Répéter chaque patient deux fois
-  GSM =  rownames(pData(data_filtr)),
-  Treatment = pData(data_filtr)$Treatment  # Selon le traitement
-)
-
-## Attention, vérifier que les GSM sont dans le bon ordre !
-View(design_data)
-
-
-##Création de la matrice de design 
-# ici on confronte les 5 patients à T0 qui vont changer de traitement au nouveau traitement à T1 (T0+3mois)
-#design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
-design <- model.matrix(~0+ Treatment, data = design_data) 
-# Afficher la matrice de design
-print(design)
-```
-
 
 # ACP
 ```{r}
@@ -390,6 +402,29 @@ ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) +
 #pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
+
+## Differential Expression
+
+# Création de notre matrice design et constrast
+```{r}
+# Création des données de design 
+design_data <- data.frame(
+  Patient = c(1:46),  # Répéter chaque patient deux fois
+  GSM =  rownames(pData(data_filtr)),
+  Treatment = pData(data_filtr)$Treatment  # Selon le traitement
+)
+
+## Attention, vérifier que les GSM sont dans le bon ordre !
+View(design_data)
+
+
+##Création de la matrice de design 
+# ici on confronte CSA/HV/SRL
+#design <- model.matrix(~0+ Treatment+Patient, data = design_data) 
+design <- model.matrix(~0+ Treatment, data = design_data) 
+# Afficher la matrice de design
+print(design)
+```
 
 
 ## Etablissement de la différential expression
@@ -503,22 +538,37 @@ full_results_DIFF <- full_results_DIFF %>%
 ## CSA vs HV
 ```{r}
 full_results_CSA %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison CSA vs HV")
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison CSA vs HV"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-CSA-HV.pdf'))
 
 ```
 ## SRL vs HV
 ```{r}
 full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison SRL vs HV")
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison SRL vs HV"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-SRL-HV.pdf'))
 ```
 
 ## CSA vs SRL
 ```{r}
 full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant)) + geom_point() + ggtitle("GSE22224 - Comparaison CSA vs HV")
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison CSA vs SRL"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-CSA-SRL.pdf'))
 ```
 
 
@@ -531,29 +581,59 @@ topN <- 20 #Nombre de genes affichés sur le graphe
 ```{r}
 #CSA vs HV
 full_results_CSA %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, ' - Volcano plot - CSA vs HV - Top ',topN,' genes '))
+ggsave(paste0(my_id,'-Volcano-Comparaison-CSA-HV-Top20-plot.pdf'))
 
-filter(full_results_CSA, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+filter(full_results_CSA, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_CSA-HV_filtered_significant_results.csv"))
+```
 
+
+```{r}
 #SRL vs HV
 full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, ' - Volcano plot - SRL vs HV - Top ',topN,' genes '))
+ggsave(paste0(my_id,'-Volcano-Comparaison-SRL-HV-Top20-plot.pdf'))
 
-filter(full_results_SRL, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+filter(full_results_SRL, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_SRL-HV_filtered_significant_results.csv"))
+```
 
+
+```{r}
 #CSA VS SRL
 full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
-  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - CSA vs SRL - Top ',topN,' genes '))
+ggsave(paste0(my_id,'-Volcano-Comparaison-CSA-SRL-Top20-plot.pdf'))
 
-filter(full_results_DIFF, adj.P.Val < 0.05, abs(logFC) > 1) %>%
+filter(full_results_DIFF, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_CSA-SRL_filtered_significant_results.csv"))
 ```
 
@@ -567,27 +647,63 @@ my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2",
 ```{r}
 #CSA vs HV
 full_results_CSA %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
   geom_point() + 
-  geom_text_repel(col = "black", max.overlaps = 20)
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - CSA vs HV - 20 genes of tolerance (Baron et al. 2015)")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-CSA-HV-20-genes-TOL.pdf'))
 
+filter(full_results_CSA, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+  write_csv(path=paste0(my_id,"_CSA-HV_filtered_significant_results.csv"))
+```
+
+
+```{r}
 #SRL vs HV
 full_results_SRL %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
   geom_point() + 
-  geom_text_repel(col = "black", max.overlaps = 20)
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - SRL vs HV - 20 genes of tolerance (Baron et al. 2015)")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-SRL-HV-20-genes-TOL.pdf'))
 
+filter(full_results_SRL, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+  write_csv(path=paste0(my_id,"_SRL-HV_filtered_significant_results.csv"))
+```
+
+
+```{r}
 #CSA vs SRL
 full_results_DIFF %>% 
-  mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>% 
-  mutate(Rank = rank(desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Significant, label = Label)) + 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
   geom_point() + 
-  geom_text_repel(col = "black", max.overlaps = 20)
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - CSA vs SRL - 20 genes of tolerance (Baron et al. 2015)")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-CSA-SRL-20-genes-TOL.pdf'))
+
+filter(full_results_DIFF, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_significant_results.csv"))
 ```
 
 ### Autre visualisation (Heatmaps)
@@ -610,8 +726,7 @@ top_gene_names_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] %>%
-  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_topN_genes.csv"))
+gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] 
 
 ##Affichage de la heatmpa des topN genes
 CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
@@ -634,8 +749,7 @@ top_gene_names_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_topN_genes.csv"))
+gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] 
 
 ##Affichage de la heatmpa des topN genes
 SRL_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
@@ -657,8 +771,7 @@ top_gene_names_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] %>%
-  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_topN_genes.csv")) 
+gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] 
 
 ##Affichage de la heatmpa des topN genes
 CSA_SRL_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
@@ -685,8 +798,7 @@ Baron_ids_of_interest_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]  %>%
-  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_20_genes.csv"))
+Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
@@ -706,8 +818,7 @@ Baron_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_20_genes.csv"))
+Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
@@ -727,8 +838,7 @@ Baron_ids_of_interest_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_g
 Baron_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]  %>%
-  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_20_genes.csv"))
+Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix__DIFF)
@@ -761,8 +871,7 @@ Danger_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_CSA <- exprs(data_filtr)[Danger_ids_of_interest_CSA,] %>%
-  write_csv(path=paste0(my_id,"_CSA-HV_filtered_results_6_genes.csv"))
+Danger_gene_matrix_CSA <- exprs(data_filtr)[Danger_ids_of_interest_CSA,]
 
 
 heatmap_6_genes_CSA <- pheatmap(Danger_gene_matrix_CSA,
@@ -782,8 +891,7 @@ Danger_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_SRL <- exprs(data_filtr)[Danger_ids_of_interest_SRL,] %>%
-  write_csv(path=paste0(my_id,"_SRL-HV_filtered_results_6_genes.csv"))
+Danger_gene_matrix_SRL <- exprs(data_filtr)[Danger_ids_of_interest_SRL,]
 
 
 heatmap_6_genes_SRL <- pheatmap(Danger_gene_matrix_SRL,
@@ -804,8 +912,7 @@ Danger_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_gene
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_DIFF <- exprs(data_filtr)[Danger_ids_of_interest_DIFF,] %>%
-  write_csv(path=paste0(my_id,"_CSA-SRL_filtered_results_6_genes.csv"))
+Danger_gene_matrix_DIFF <- exprs(data_filtr)[Danger_ids_of_interest_DIFF,]
 
 
 heatmap_6_genes_DIFF <- pheatmap(Danger_gene_matrix_DIFF,
