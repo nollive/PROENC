@@ -1142,33 +1142,33 @@ ego_UP_SRL <- enrichGO(gene         = UpGenesSymb_SRL,
 
 head(ego_UP_SRL)
 data.frame(ego_UP_SRL)
-
-
-SelGO_UP_SRL <- ego_UP_SRL[which(ego_UP_SRL$p.adjust  < 0.05 & ego_UP_SRL$Count > 5),]
-
-barplot(ego_UP_SRL)
-barplot(ego_UP_SRL, showCategory= dim(SelGO_UP_SRL)[1] )
-barplot(ego_UP_SRL, showCategory= 10)
-
-write.table(data.frame(ego_UP_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-UP_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_UP_SRL <- clusterProfiler::simplify(ego_UP_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_UP_SRL)
-
-jpeg(paste("SRL-HV-h-GO-UP", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_UP_SRL)
-upsetplot(ego_UP_SRL)
-#cnetplot(ego_UP_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
-cnetplot(ego_UP_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
-
-
-heatplot(ego_UP_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
-heatplot(ego_UP_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
-
-#emapplot(ego_UP_SRL)
-
-cnetplot(ego_UP_SRL, foldChange=geneList)
+dim(ego_UP_SRL)
+## PAS DE GO POUR UP SRL-HV
+# SelGO_UP_SRL <- ego_UP_SRL[which(ego_UP_SRL$p.adjust  < 0.05 & ego_UP_SRL$Count > 5),]
+# 
+# barplot(ego_UP_SRL)
+# barplot(ego_UP_SRL, showCategory= dim(SelGO_UP_SRL)[1] )
+# barplot(ego_UP_SRL, showCategory= 10)
+# 
+# write.table(data.frame(ego_UP_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-UP_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_UP_SRL <- clusterProfiler::simplify(ego_UP_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_UP_SRL)
+# 
+# jpeg(paste("SRL-HV-h-GO-UP", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_UP_SRL)
+# upsetplot(ego_UP_SRL)
+# #cnetplot(ego_UP_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
+# cnetplot(ego_UP_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_UP_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
+# heatplot(ego_UP_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
+# 
+# #emapplot(ego_UP_SRL)
+# 
+# cnetplot(ego_UP_SRL, foldChange=geneList)
 
 ```
 
@@ -1185,222 +1185,225 @@ ego_DOWN_SRL <- enrichGO(gene         = UpGenesSymb_SRL,
                 #qvalueCutoff  = 0.5,
                 minGSSize=5)
 
-
-head(ego_DOWN_SRL)
-data.frame(ego_DOWN_SRL)
-
-
-SelGO_DOWN_SRL <- ego_DOWN_SRL[which(ego_DOWN_SRL$p.adjust  < 0.05 & ego_DOWN_SRL$Count > 5),]
-
-barplot(ego_DOWN_SRL)
-barplot(ego_DOWN_SRL, showCategory= dim(SelGO_DOWN_SRL)[1] )
-barplot(ego_DOWN_SRL, showCategory= 10)
-
-write.table(data.frame(ego_DOWN_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-DOWN_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_DOWN_SRL <- clusterProfiler::simplify(ego_DOWN_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_DOWN_SRL)
-
-jpeg(paste("SRL-HV-h-GO-DOWN", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_DOWN_SRL)
-upsetplot(ego_DOWN_SRL)
-#cnetplot(ego_DOWN_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
-cnetplot(ego_DOWN_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
-
-
-heatplot(ego_DOWN_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
-heatplot(ego_DOWN_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
-
-#emapplot(ego_DOWN_SRL)
-
-cnetplot(ego_DOWN_SRL, foldChange=geneList)
-
-```
-
-
-```{r}
-## DIFF GENES
-ego_DIFF_SRL <- enrichGO(gene         = UpGenesSymb_SRL,
-                universe = geneList,
-                OrgDb         = org.Hs.eg.db,
-                keyType       = 'SYMBOL',
-                ont           = "BP",
-                pAdjustMethod = "BH",
-                pvalueCutoff  = 0.05,
-                #qvalueCutoff  = 0.5,
-                minGSSize=5)
-
-
-head(ego_DIFF_SRL)
-data.frame(ego_DIFF_SRL)
-
-
-SelGO_DIFF_SRL <- ego_DIFF_SRL[which(ego_DIFF_SRL$p.adjust  < 0.05 & ego_DIFF_SRL$Count > 5),]
-
-barplot(ego_DIFF_SRL)
-barplot(ego_DIFF_SRL, showCategory= dim(SelGO_DIFF_SRL)[1] )
-barplot(ego_DIFF_SRL, showCategory= 10)
-
-write.table(data.frame(ego_DIFF_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-DIFF_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_DIFF_SRL <- clusterProfiler::simplify(ego_DIFF_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_DIFF_SRL)
-
-jpeg(paste("SRL-HV-h-GO-DIFF", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_DIFF_SRL)
-upsetplot(ego_DIFF_SRL)
-#cnetplot(ego_DIFF_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
-cnetplot(ego_DIFF_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
-
-
-heatplot(ego_DIFF_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
-heatplot(ego_DIFF_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
-
-#emapplot(ego_DIFF_SRL)
-
-cnetplot(ego_DIFF_SRL, foldChange=geneList)
-
-```
-
-
-
-
-## GO POUR CSA-SRL
-```{r}
-## UP GENES
-ego_UP_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
-                universe = geneList,
-                OrgDb         = org.Hs.eg.db,
-                keyType       = 'SYMBOL',
-                ont           = "BP",
-                pAdjustMethod = "BH",
-                pvalueCutoff  = 0.05,
-                #qvalueCutoff  = 0.5,
-                minGSSize=5)
-
-
-head(ego_UP_DIFF)
-data.frame(ego_UP_DIFF)
-
-
-SelGO_UP_DIFF <- ego_UP_DIFF[which(ego_UP_DIFF$p.adjust  < 0.05 & ego_UP_DIFF$Count > 5),]
-
-barplot(ego_UP_DIFF)
-barplot(ego_UP_DIFF, showCategory= dim(SelGO_UP_DIFF)[1] )
-barplot(ego_UP_DIFF, showCategory= 10)
-
-write.table(data.frame(ego_UP_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-UP_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_UP_DIFF <- clusterProfiler::simplify(ego_UP_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_UP_DIFF)
-
-jpeg(paste("CSA-SRL-h-GO-UP", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_UP_DIFF)
-upsetplot(ego_UP_DIFF)
-#cnetplot(ego_UP_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
-cnetplot(ego_UP_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
-
-
-heatplot(ego_UP_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
-heatplot(ego_UP_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
-
-#emapplot(ego_UP_DIFF)
-
-cnetplot(ego_UP_DIFF, foldChange=geneList)
+dim(ego_DOWN_SRL)
+## PAS DE GO DOWN POUR SRL
+# head(ego_DOWN_SRL)
+# data.frame(ego_DOWN_SRL)
+# 
+# 
+# SelGO_DOWN_SRL <- ego_DOWN_SRL[which(ego_DOWN_SRL$p.adjust  < 0.05 & ego_DOWN_SRL$Count > 5),]
+# 
+# barplot(ego_DOWN_SRL)
+# barplot(ego_DOWN_SRL, showCategory= dim(SelGO_DOWN_SRL)[1] )
+# barplot(ego_DOWN_SRL, showCategory= 10)
+# 
+# write.table(data.frame(ego_DOWN_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-DOWN_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_DOWN_SRL <- clusterProfiler::simplify(ego_DOWN_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_DOWN_SRL)
+# 
+# jpeg(paste("SRL-HV-h-GO-DOWN", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_DOWN_SRL)
+# upsetplot(ego_DOWN_SRL)
+# #cnetplot(ego_DOWN_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
+# cnetplot(ego_DOWN_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_DOWN_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
+# heatplot(ego_DOWN_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
+# 
+# #emapplot(ego_DOWN_SRL)
+# 
+# cnetplot(ego_DOWN_SRL, foldChange=geneList)
 
 ```
 
 
 ```{r}
-## DOWN GENES
-ego_DOWN_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
-                universe = geneList,
-                OrgDb         = org.Hs.eg.db,
-                keyType       = 'SYMBOL',
-                ont           = "BP",
-                pAdjustMethod = "BH",
-                pvalueCutoff  = 0.05,
-                #qvalueCutoff  = 0.5,
-                minGSSize=5)
+## DIFF GENES --> PAS DE GO ANALYSIS CAR PAS SIGNIFICATIF (cf. VOLCANO PLOTS)
 
-
-head(ego_DOWN_DIFF)
-data.frame(ego_DOWN_DIFF)
-
-
-SelGO_DOWN_DIFF <- ego_DOWN_DIFF[which(ego_DOWN_DIFF$p.adjust  < 0.05 & ego_DOWN_DIFF$Count > 5),]
-
-barplot(ego_DOWN_DIFF)
-barplot(ego_DOWN_DIFF, showCategory= dim(SelGO_DOWN_DIFF)[1] )
-barplot(ego_DOWN_DIFF, showCategory= 10)
-
-write.table(data.frame(ego_DOWN_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-DOWN_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_DOWN_DIFF <- clusterProfiler::simplify(ego_DOWN_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_DOWN_DIFF)
-
-jpeg(paste("CSA-SRL-h-GO-DOWN", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_DOWN_DIFF)
-upsetplot(ego_DOWN_DIFF)
-#cnetplot(ego_DOWN_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
-cnetplot(ego_DOWN_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
-
-
-heatplot(ego_DOWN_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
-heatplot(ego_DOWN_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
-
-#emapplot(ego_DOWN_DIFF)
-
-cnetplot(ego_DOWN_DIFF, foldChange=geneList)
-
-```
-
-
-```{r}
-## DIFF GENES
-ego_DIFF_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
-                universe = geneList,
-                OrgDb         = org.Hs.eg.db,
-                keyType       = 'SYMBOL',
-                ont           = "BP",
-                pAdjustMethod = "BH",
-                pvalueCutoff  = 0.05,
-                #qvalueCutoff  = 0.5,
-                minGSSize=5)
-
-
-head(ego_DIFF_DIFF)
-data.frame(ego_DIFF_DIFF)
-
-
-SelGO_DIFF_DIFF <- ego_DIFF_DIFF[which(ego_DIFF_DIFF$p.adjust  < 0.05 & ego_DIFF_DIFF$Count > 5),]
-
-barplot(ego_DIFF_DIFF)
-barplot(ego_DIFF_DIFF, showCategory= dim(SelGO_DIFF_DIFF)[1] )
-barplot(ego_DIFF_DIFF, showCategory= 10)
-
-write.table(data.frame(ego_DIFF_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-DIFF_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
-
-ego2_DIFF_DIFF <- clusterProfiler::simplify(ego_DIFF_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
-barplot(ego2_DIFF_DIFF)
-
-jpeg(paste("CSA-SRL-h-GO-DIFF", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
-dev.off()
-#plotGOgraph(ego_DIFF_DIFF)
-upsetplot(ego_DIFF_DIFF)
-#cnetplot(ego_DIFF_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
-cnetplot(ego_DIFF_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
-
-
-heatplot(ego_DIFF_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
-heatplot(ego_DIFF_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
-
-#emapplot(ego_DIFF_DIFF)
-
-cnetplot(ego_DIFF_DIFF, foldChange=geneList)
+# 
+# ego_DIFF_SRL <- enrichGO(gene         = UpGenesSymb_SRL,
+#                 universe = geneList,
+#                 OrgDb         = org.Hs.eg.db,
+#                 keyType       = 'SYMBOL',
+#                 ont           = "BP",
+#                 pAdjustMethod = "BH",
+#                 pvalueCutoff  = 0.05,
+#                 #qvalueCutoff  = 0.5,
+#                 minGSSize=5)
+# 
+# 
+# head(ego_DIFF_SRL)
+# data.frame(ego_DIFF_SRL)
+# 
+# 
+# SelGO_DIFF_SRL <- ego_DIFF_SRL[which(ego_DIFF_SRL$p.adjust  < 0.05 & ego_DIFF_SRL$Count > 5),]
+# 
+# barplot(ego_DIFF_SRL)
+# barplot(ego_DIFF_SRL, showCategory= dim(SelGO_DIFF_SRL)[1] )
+# barplot(ego_DIFF_SRL, showCategory= 10)
+# 
+# write.table(data.frame(ego_DIFF_SRL), file =paste("c-GO-", comparisonSRL, "-SRL-HV-DIFF_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_DIFF_SRL <- clusterProfiler::simplify(ego_DIFF_SRL, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_DIFF_SRL)
+# 
+# jpeg(paste("SRL-HV-h-GO-DIFF", comparisonSRL, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_DIFF_SRL)
+# upsetplot(ego_DIFF_SRL)
+# #cnetplot(ego_DIFF_SRL, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_SRL$logFC)
+# cnetplot(ego_DIFF_SRL, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_SRL$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_DIFF_SRL, showCategory = 25) #, foldChange = DiffGenes_SRL$logFC)
+# heatplot(ego_DIFF_SRL,showCategory = 25, foldChange = DiffGenes_SRL$logFC)
+# 
+# #emapplot(ego_DIFF_SRL)
+# 
+# cnetplot(ego_DIFF_SRL, foldChange=geneList)
+# 
+# ```
+# 
+# 
+# 
+# 
+# ## GO POUR CSA-SRL
+# ```{r}
+# ## UP GENES
+# ego_UP_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
+#                 universe = geneList,
+#                 OrgDb         = org.Hs.eg.db,
+#                 keyType       = 'SYMBOL',
+#                 ont           = "BP",
+#                 pAdjustMethod = "BH",
+#                 pvalueCutoff  = 0.05,
+#                 #qvalueCutoff  = 0.5,
+#                 minGSSize=5)
+# 
+# 
+# head(ego_UP_DIFF)
+# data.frame(ego_UP_DIFF)
+# 
+# 
+# SelGO_UP_DIFF <- ego_UP_DIFF[which(ego_UP_DIFF$p.adjust  < 0.05 & ego_UP_DIFF$Count > 5),]
+# 
+# barplot(ego_UP_DIFF)
+# barplot(ego_UP_DIFF, showCategory= dim(SelGO_UP_DIFF)[1] )
+# barplot(ego_UP_DIFF, showCategory= 10)
+# 
+# write.table(data.frame(ego_UP_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-UP_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_UP_DIFF <- clusterProfiler::simplify(ego_UP_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_UP_DIFF)
+# 
+# jpeg(paste("CSA-SRL-h-GO-UP", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_UP_DIFF)
+# upsetplot(ego_UP_DIFF)
+# #cnetplot(ego_UP_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
+# cnetplot(ego_UP_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_UP_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
+# heatplot(ego_UP_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
+# 
+# #emapplot(ego_UP_DIFF)
+# 
+# cnetplot(ego_UP_DIFF, foldChange=geneList)
+# 
+# ```
+# 
+# 
+# ```{r}
+# ## DOWN GENES
+# ego_DOWN_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
+#                 universe = geneList,
+#                 OrgDb         = org.Hs.eg.db,
+#                 keyType       = 'SYMBOL',
+#                 ont           = "BP",
+#                 pAdjustMethod = "BH",
+#                 pvalueCutoff  = 0.05,
+#                 #qvalueCutoff  = 0.5,
+#                 minGSSize=5)
+# 
+# 
+# head(ego_DOWN_DIFF)
+# data.frame(ego_DOWN_DIFF)
+# 
+# 
+# SelGO_DOWN_DIFF <- ego_DOWN_DIFF[which(ego_DOWN_DIFF$p.adjust  < 0.05 & ego_DOWN_DIFF$Count > 5),]
+# 
+# barplot(ego_DOWN_DIFF)
+# barplot(ego_DOWN_DIFF, showCategory= dim(SelGO_DOWN_DIFF)[1] )
+# barplot(ego_DOWN_DIFF, showCategory= 10)
+# 
+# write.table(data.frame(ego_DOWN_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-DOWN_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_DOWN_DIFF <- clusterProfiler::simplify(ego_DOWN_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_DOWN_DIFF)
+# 
+# jpeg(paste("CSA-SRL-h-GO-DOWN", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_DOWN_DIFF)
+# upsetplot(ego_DOWN_DIFF)
+# #cnetplot(ego_DOWN_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
+# cnetplot(ego_DOWN_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_DOWN_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
+# heatplot(ego_DOWN_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
+# 
+# #emapplot(ego_DOWN_DIFF)
+# 
+# cnetplot(ego_DOWN_DIFF, foldChange=geneList)
+# 
+# ```
+# 
+# 
+# ```{r}
+# ## DIFF GENES
+# ego_DIFF_DIFF <- enrichGO(gene         = UpGenesSymb_DIFF,
+#                 universe = geneList,
+#                 OrgDb         = org.Hs.eg.db,
+#                 keyType       = 'SYMBOL',
+#                 ont           = "BP",
+#                 pAdjustMethod = "BH",
+#                 pvalueCutoff  = 0.05,
+#                 #qvalueCutoff  = 0.5,
+#                 minGSSize=5)
+# 
+# 
+# head(ego_DIFF_DIFF)
+# data.frame(ego_DIFF_DIFF)
+# 
+# 
+# SelGO_DIFF_DIFF <- ego_DIFF_DIFF[which(ego_DIFF_DIFF$p.adjust  < 0.05 & ego_DIFF_DIFF$Count > 5),]
+# 
+# barplot(ego_DIFF_DIFF)
+# barplot(ego_DIFF_DIFF, showCategory= dim(SelGO_DIFF_DIFF)[1] )
+# barplot(ego_DIFF_DIFF, showCategory= 10)
+# 
+# write.table(data.frame(ego_DIFF_DIFF), file =paste("c-GO-", comparisonDIFF, "-CSA-SRL-DIFF_diff-",".txt", sep=""), sep="\t",  na="NA", dec=".")
+# 
+# ego2_DIFF_DIFF <- clusterProfiler::simplify(ego_DIFF_DIFF, cutoff=0.8, by="p.adjust", select_fun=min)
+# barplot(ego2_DIFF_DIFF)
+# 
+# jpeg(paste("CSA-SRL-h-GO-DIFF", comparisonDIFF, ".jpeg", sep=""), width=6, height=6, units="in", res=400, quality=100)
+# dev.off()
+# #plotGOgraph(ego_DIFF_DIFF)
+# upsetplot(ego_DIFF_DIFF)
+# #cnetplot(ego_DIFF_DIFF, showCategory = 3, categorySize="pvalue", foldChange= DiffGenes_DIFF$logFC)
+# cnetplot(ego_DIFF_DIFF, showCategory = 5, categorySize = "geneNum", foldChange = DiffGenes_DIFF$logFC,   fixed = TRUE)
+# 
+# 
+# heatplot(ego_DIFF_DIFF, showCategory = 25) #, foldChange = DiffGenes_DIFF$logFC)
+# heatplot(ego_DIFF_DIFF,showCategory = 25, foldChange = DiffGenes_DIFF$logFC)
+# 
+# #emapplot(ego_DIFF_DIFF)
+# 
+# cnetplot(ego_DIFF_DIFF, foldChange=geneList)
 
 ```
