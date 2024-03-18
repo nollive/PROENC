@@ -168,10 +168,50 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
 dim(data_filtr)
 library(Affyhgu133aExpr)
 #data_replicates <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
-dim(data_replicates)
+#dim(data_replicates)
 
 ##### END import #####
 ```
+
+
+## Test
+```{r}
+# Load required libraries
+library(dplyr)
+
+expression_data <- data_filtr@assayData[["exprs"]]
+probe_ids <- rownames(expression_data)
+probe_to_symbol <- data_filtr@featureData@data %>%
+  select(ID, `Gene Symbol`)
+
+probe_to_symbol_map <- setNames(probe_to_symbol$`Gene Symbol`, probe_to_symbol$ID)
+gene_symbols <- probe_to_symbol_map[probe_ids]
+expression_data <- cbind(expression_data, `Gene Symbol` = gene_symbols)
+expression_data <- as.data.frame(expression_data)
+
+expression_data$`Gene Symbol` <- as.character(expression_data$`Gene Symbol`)
+
+## Suppression des genes dupliqués (plusieurs probes pour le meme gene)
+duplicated_rows <- duplicated(expression_data$`Gene Symbol`)
+expression_data_unique <- expression_data[!duplicated_rows, ]
+
+
+## Si on veut calculer la moyenne (long)
+# expression_data_mean <- expression_data %>%
+#   group_by(`Gene Symbol`) %>%
+#   summarize(across(starts_with("GSM"), mean, na.rm = TRUE))
+
+dim(data_filtr)
+dim(expression_data_unique)
+#dim(expression_data_mean)
+
+indexDup <- rownames(expression_data_unique)
+sansDup <- data_filtr[indexDup,]
+data_filtr <- sansDup
+
+```
+
+
 ## Analyse
 ```{r}
 summary(exprs(data_filtr))
@@ -373,7 +413,7 @@ full_results %>%
   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
   geom_point() +    
-  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_text_repel(col = "black", max.overlaps = 250)  + 
   geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
@@ -441,8 +481,6 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      main = paste0(my_id, ' - Heatmap - Top ',topN,' 20 genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
-
-#PROBLEME MANQUE DEUX NOM DE GENES????
 ```
 
 
@@ -542,7 +580,7 @@ ego_UP <- enrichGO(gene         = UpGenesSymb,
 head(ego_UP)
 data.frame(ego_UP)
 
-
+if (dim(ego_UP)[1] == 0){print("Pas de GO analysis pour les genes sur-exprimés")}
 SelGO_UP <- ego_UP[which(ego_UP$p.adjust  < 0.05 & ego_UP$Count > 5),]
 
 barplot(ego_UP)

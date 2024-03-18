@@ -174,6 +174,46 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
 
 ##### END import #####
 ```
+
+
+## Test
+```{r}
+# Load required libraries
+library(dplyr)
+
+expression_data <- data_filtr@assayData[["exprs"]]
+probe_ids <- rownames(expression_data)
+probe_to_symbol <- data_filtr@featureData@data %>%
+  select(ID, `Gene Symbol`)
+
+probe_to_symbol_map <- setNames(probe_to_symbol$`Gene Symbol`, probe_to_symbol$ID)
+gene_symbols <- probe_to_symbol_map[probe_ids]
+expression_data <- cbind(expression_data, `Gene Symbol` = gene_symbols)
+expression_data <- as.data.frame(expression_data)
+
+expression_data$`Gene Symbol` <- as.character(expression_data$`Gene Symbol`)
+
+## Suppression des genes dupliqués (plusieurs probes pour le meme gene)
+duplicated_rows <- duplicated(expression_data$`Gene Symbol`)
+expression_data_unique <- expression_data[!duplicated_rows, ]
+
+
+## Si on veut calculer la moyenne (long)
+# expression_data_mean <- expression_data %>%
+#   group_by(`Gene Symbol`) %>%
+#   summarize(across(starts_with("GSM"), mean, na.rm = TRUE))
+
+dim(data_filtr)
+dim(expression_data_unique)
+#dim(expression_data_mean)
+
+indexDup <- rownames(expression_data_unique)
+sansDup <- data_filtr[indexDup,]
+data_filtr <- sansDup
+
+```
+
+
 ## Analyse
 ```{r}
 summary(exprs(data_filtr))
