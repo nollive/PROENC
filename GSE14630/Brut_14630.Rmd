@@ -157,10 +157,10 @@ dim(total)
 #write.table(total, file=paste0("Données d'expression du ",eset_id), sep="\t")
 
 # Suppression des genes mal annotés -> ne fonctionne pas pour l'instant
-if (length(which(is.na(fData(data_filtr)$"Gene Symbol"))) != 0 ){
-index <- which(is.na(fData(data_filtr)$"Gene Symbol"))
+if (length(which(is.na(fData(data_filtr)$"SYMBOL"))) != 0 ){
+index <- which(is.na(fData(data_filtr)$"SYMBOL"))
 sansNA <- data_filtr[-index, ]
-length(which(is.na(fData(sansNA)$"Gene Symbol") ==T ))
+length(which(is.na(fData(sansNA)$"SYMBOL") ==T ))
 dim(sansNA)
 dim(data_filtr)
 data_filtr <- sansNA
@@ -176,7 +176,7 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
 ##Aggr?ger les r?plicats de g?nes par moyenne: ####
 
 ## Méthode R. Danger
-DataSYMBOL <- aggregate(exprs(data_filtr), by= list(fData(data_filtr)$"Gene Symbol"), mean)
+DataSYMBOL <- aggregate(exprs(data_filtr), by= list(fData(data_filtr)$"SYMBOL"), mean)
 dim(DataSYMBOL)
 rownames(DataSYMBOL) <- DataSYMBOL[,1]
 DataSYMBOL <- as.matrix(DataSYMBOL[-1])
@@ -197,17 +197,17 @@ library(dplyr)
 expression_data <- data_filtr@assayData[["exprs"]]
 probe_ids <- rownames(expression_data)
 probe_to_symbol <- data_filtr@featureData@data %>%
-  select(ID, `Gene Symbol`)
+  select(`PROBEID`, `SYMBOL`)
 
-probe_to_symbol_map <- setNames(probe_to_symbol$`Gene Symbol`, probe_to_symbol$ID)
+probe_to_symbol_map <- setNames(probe_to_symbol$`SYMBOL`, probe_to_symbol$`PROBEID`)
 gene_symbols <- probe_to_symbol_map[probe_ids]
-expression_data <- cbind(expression_data, `Gene Symbol` = gene_symbols)
+expression_data <- cbind(expression_data, `SYMBOL` = gene_symbols)
 expression_data <- as.data.frame(expression_data)
 
-expression_data$`Gene Symbol` <- as.character(expression_data$`Gene Symbol`)
+expression_data$`SYMBOL` <- as.character(expression_data$`SYMBOL`)
 
 ## Suppression des genes dupliqués (plusieurs probes pour le meme gene)
-duplicated_rows <- duplicated(expression_data$`Gene Symbol`)
+duplicated_rows <- duplicated(expression_data$`SYMBOL`)
 expression_data_unique <- expression_data[!duplicated_rows, ]
 
 
@@ -325,7 +325,7 @@ View(design_data)
 
 ##Création de la matrice de design 
 # ici on confronte les 5 patients à T0 qui vont changer de traitement au nouveau traitement à T1 (T0+3mois)
-design <- model.matrix(~0+ Time+Patient, data = design_data) 
+design <- model.matrix(~0+ Time, data = design_data) 
 
 # Afficher la matrice de design
 print(design)
@@ -429,7 +429,7 @@ print(pca_plot)
 
 # lmFit
 ```{r}
-fit <- lmFit(exprs(data_filtr), design)
+fit <- lmFit(DataSYMBOL, design)
 
 #Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
 head(fit$coefficients)
@@ -571,7 +571,7 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top <- DataSYMBOL[top_ids_of_interest,]
 write.csv(gene_matrix_top, file=paste0(my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmap des topN genes
@@ -599,7 +599,7 @@ Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
 Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix <- DataSYMBOL[Baron_ids_of_interest,]
 write.csv(x = Baron_gene_matrix, file = paste0(my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -626,7 +626,7 @@ Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 
 
 #Affichage
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix <- DataSYMBOL[Danger_ids_of_interest,]
 write.csv(x = Danger_gene_matrix, file=paste0(my_id,"_filtered_results_6_genes.csv"))
 
 
