@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 ```{r eval=false}
-library(affycoretools)
+
 library(RColorBrewer)
 library(readxl)
 library(UpSetR)
@@ -37,7 +37,8 @@ library(hgu133a.db)
 library(pd.huex.1.0.st.v2)
 library(pd.ht.hg.u133.plus.pm)
 
-
+library(dbplyr)
+library(affycoretools)
 library(dplyr)
 
 # Fonction pour enregistrer les pheatmap (https://stackoverflow.com/questions/43051525/how-to-draw-pheatmap-plot-to-screen-and-also-save-to-file)
@@ -130,7 +131,7 @@ which(fData(eset)$SYMBOL == geneName )
 
 
 # filtration:
-eset_medians <- rowMedians(Biobase::exprs(gse))
+eset_medians <- rowMedians(Biobase::exprs(eset))
 hist_res <- hist(eset_medians, 100, col = "cornsilk1", freq = FALSE, 
                  main = "Histogram of the median intensities", 
                  border = "antiquewhite4",
@@ -140,20 +141,20 @@ man_threshold =median(eset_medians)
 abline(v = median(eset_medians), col = "grey", lwd = 2)
 abline(v = man_threshold, col = "coral4", lwd = 2)
 
-length(which((rowMedians(exprs(gse)) >= man_threshold) == "TRUE"))
+length(which((rowMedians(exprs(eset)) >= man_threshold) == "TRUE"))
 
 #Filtration selon la médiane d'expression (enleve aussi les NA)
-data_filtr  <- gse[rowMedians(exprs(gse)) >= man_threshold,]
-colnames(data_filtr) <- pData(data_filtr)$geo_accession
+data_filtr  <- eset[rowMedians(exprs(eset)) >= man_threshold,]
+colnames(data_filtr) <- pData(data_filtr)$GSM
 dim(data_filtr)
-dim(gse)
+dim(eset)
 
 #Rassemble tout dans un dataset
 total <- cbind(fData(data_filtr), exprs(data_filtr))
 dim(total)
 
 #Export des données d'expression
-#write.table(total, file=paste0("Données d'expression du ",gse_id), sep="\t")
+#write.table(total, file=paste0("Données d'expression du ",eset_id), sep="\t")
 
 # Suppression des genes mal annotés -> ne fonctionne pas pour l'instant
 if (length(which(is.na(fData(data_filtr)$"Gene Symbol"))) != 0 ){
@@ -171,6 +172,18 @@ hist_res <- hist(sansNA_medians, 100, col = "cornsilk1", freq = FALSE,
 }
 
 #data_filter <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
+
+##Aggr?ger les r?plicats de g?nes par moyenne: ####
+
+## Méthode R. Danger
+DataSYMBOL <- aggregate(exprs(data_filtr), by= list(fData(data_filtr)$"Gene Symbol"), mean)
+dim(DataSYMBOL)
+rownames(DataSYMBOL) <- DataSYMBOL[,1]
+DataSYMBOL <- as.matrix(DataSYMBOL[-1])
+dim(DataSYMBOL)
+dim(pd)
+#exprs(data_filtr) <- DataSYMBOL
+
 
 ##### END import #####
 ```
@@ -269,7 +282,7 @@ save_pheatmap_pdf(heatmapGSM_nofiltr, paste0(my_id,'_heatmap-GSM-with-outliers.p
 
 ```{r eval=false}
 #full_output <- cbind(fData(data_filtr),exprs(data_filtr))
-#write_csv(full_output, path="gse_full_output.csv")
+#write_csv(full_output, path="eset_full_output.csv")
 ```
 
 # Définition de nos features (et modification des noms de features si besoin (selon version de puces))
