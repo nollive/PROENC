@@ -280,7 +280,7 @@ sampleInfo <- dplyr::select(sampleInfo, Patient,Treatment,Group_short,Group,Desc
 
 ## Si jamais on a besoin de renommer nos variables (plus lisible)
 #sampleInfo <- dplyr::rename(sampleInfo,group = source_name_ch1, patient=characteristics_ch1)
-View(sampleInfo)
+#View(sampleInfo)
 ```
 
 
@@ -465,7 +465,7 @@ design_data <- data.frame(
 )
 
 ## Attention, vérifier que les GSM sont dans le bon ordre !
-View(design_data)
+#View(design_data)
 
 
 ##Création de la matrice de design 
@@ -542,7 +542,7 @@ full_results_CSA <- tibble::rownames_to_column(full_results_CSA,"ID")
 full_results_SRL <- tibble::rownames_to_column(full_results_SRL,"ID")
 full_results_DIFF <- tibble::rownames_to_column(full_results_DIFF,"ID")
 
-View(full_results_CSA)
+#View(full_results_CSA)
 ```
 # Visualisation des resultat de la differencial expression
 
