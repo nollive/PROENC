@@ -528,7 +528,7 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
+  scale_color_manual(values=c("grey", "blue", "goldy"))+
   labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - adj.P.Value'))
 ggsave(paste0(my_id,'-Volcano-Top20-plot-adj-P-Value.pdf'))
 
@@ -541,7 +541,7 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
   labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - P.Value'))
 ggsave(paste0(my_id,'-Volcano-Top20-plot-P-Value.pdf'))
 
@@ -560,11 +560,24 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  sscale_color_manual(values=c("grey", "blue", "gold"))+ 
   geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL.pdf'))
+  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - adj.P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-adj-P-Value.pdf'))
 
+
+full_results %>% 
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col = gene_type, label = Label)) + 
+  geom_point() + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-P-Value.pdf'))
 
 ```
 
