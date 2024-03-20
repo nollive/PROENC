@@ -496,7 +496,7 @@ full_results <- full_results %>%
 # Volcano plots
 ```{r}
 full_results %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+

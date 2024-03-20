@@ -181,7 +181,7 @@ dim(data_filtr)
 dim(eset)
 
 #Rassemble tout dans un dataset
-total <- cbind(fData(data_filtr), exprs(data_filtr))
+total <- cbind(fData(data_filtr), DataSYMBOL)
 dim(total)
 
 #Export des données d'expression
@@ -212,6 +212,17 @@ dim(data_filtr)
 #data_duplicates <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 #dim(data_duplicates)
 
+##Aggr?ger les r?plicats de g?nes par moyenne: ####
+
+## Méthode R. Danger
+DataSYMBOL <- aggregate(exprs(data_filtr), by= list(fData(data_filtr)$"SYMBOL"), mean)
+dim(DataSYMBOL)
+rownames(DataSYMBOL) <- DataSYMBOL[,1]
+DataSYMBOL <- as.matrix(DataSYMBOL[-1])
+dim(DataSYMBOL)
+dim(data_filtr)
+dim(pd)
+
 ##### END import #####
 ```
 
@@ -223,17 +234,17 @@ library(dplyr)
 expression_data <- data_filtr@assayData[["exprs"]]
 probe_ids <- rownames(expression_data)
 probe_to_symbol <- data_filtr@featureData@data %>%
-  select(ID, `Gene Symbol`)
+  select(PROBEID, `SYMBOL`)
 
-probe_to_symbol_map <- setNames(probe_to_symbol$`Gene Symbol`, probe_to_symbol$ID)
+probe_to_symbol_map <- setNames(probe_to_symbol$`SYMBOL`, probe_to_symbol$PROBEID)
 gene_symbols <- probe_to_symbol_map[probe_ids]
-expression_data <- cbind(expression_data, `Gene Symbol` = gene_symbols)
+expression_data <- cbind(expression_data, `SYMBOL` = gene_symbols)
 expression_data <- as.data.frame(expression_data)
 
-expression_data$`Gene Symbol` <- as.character(expression_data$`Gene Symbol`)
+expression_data$`SYMBOL` <- as.character(expression_data$`SYMBOL`)
 
 ## Suppression des genes dupliqués (plusieurs probes pour le meme gene)
-duplicated_rows <- duplicated(expression_data$`Gene Symbol`)
+duplicated_rows <- duplicated(expression_data$`SYMBOL`)
 expression_data_unique <- expression_data[!duplicated_rows, ]
 
 
@@ -316,12 +327,12 @@ dim(data_outliers)
 dim(data_filtr)
 
 
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+corMatrix_outliers_SRL <- cor(exprs(data_outliers), use = "c")
+heatmapGSM_filtr_SRL <- pheatmap(corMatrix_outliers_SRL,
          annotation_col = annotations,
          main = paste0(my_id, ' - Heatmap - Without outlier (', GSM_outliers, ')'))
 
-save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA.pdf'))
+save_pheatmap_pdf(heatmapGSM_filtr_SRL, paste0(my_id,'_heatmap-GSM-sans-SRL.pdf'))
 
 
 
@@ -333,12 +344,12 @@ dim(data_outliers)
 dim(data_filtr)
 
 
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+corMatrix_outliers_CSA_HV <- cor(exprs(data_outliers), use = "c")
+heatmapGSM_filtr_CSA_HV <- pheatmap(corMatrix_outliers_CSA_HV,
          annotation_col = annotations,
          main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
-save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-HV.pdf'))
+save_pheatmap_pdf(heatmapGSM_filtr_CSA_HV, paste0(my_id,'_heatmap-GSM-sans-CSA-HV.pdf'))
 
 
 
@@ -350,12 +361,12 @@ dim(data_outliers)
 dim(data_filtr)
 
 
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+corMatrix_outliers_SRL_HV <- cor(exprs(data_outliers), use = "c")
+heatmapGSM_filtr_SRL_HV <- pheatmap(corMatrix_outliers_SRL_HV,
          annotation_col = annotations,
          main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
-save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-SRL-HV.pdf'))
+save_pheatmap_pdf(heatmapGSM_filtr_SRL_HV, paste0(my_id,'_heatmap-GSM-sans-SRL-HV.pdf'))
 
 
 #Enlever les 3
@@ -366,17 +377,17 @@ dim(data_outliers)
 dim(data_filtr)
 
 
-corMatrix_outliers <- cor(exprs(data_outliers), use = "c")
-heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
+corMatrix_outliers_CSA_SRL_HV <- cor(exprs(data_outliers), use = "c")
+heatmapGSM_filtr_CSA_SRL_HV <- pheatmap(corMatrix_outliers_CSA_SRL_HV,
          annotation_col = annotations,
          main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
-save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-CSA-SRL-HV.pdf'))
+save_pheatmap_pdf(heatmapGSM_filtr_CSA_SRL_HV, paste0(my_id,'_heatmap-GSM-sans-CSA-SRL-HV.pdf'))
 
 
 ## On choisi les outliers à enlever qui nous conviennent -> ICI LES 3
 GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers]
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
@@ -409,7 +420,7 @@ features <- features %>%
          GENE_TITLE = `GENENAME`)
 
 #Affichage de features
-View(features)
+#View(features)
 
 #Export des features
 full_output <- cbind(features,exprs(data_filtr))
@@ -470,7 +481,7 @@ print(design)
 
 # lmFit
 ```{r}
-fit <- lmFit(exprs(data_filtr), design)
+fit <- lmFit(DataSYMBOL, design)
 
 #Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
 head(fit$coefficients)
@@ -490,7 +501,7 @@ contrasts <- makeContrasts(EffetCsA=   TreatmentCsA-TreatmentHV,
 # On applique nos constrasts 
 
 fit2 <- contrasts.fit(fit, contrasts)
-fit2
+#fit2
 
 ```
 
@@ -765,12 +776,13 @@ top_gene_names_CSA <- mutate(full_results_CSA, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_CSA <- exprs(data_filtr)[top_ids_of_interest_CSA,] 
+gene_matrix_top_CSA <- DataSYMBOL[top_ids_of_interest_CSA,] 
 
 ##Affichage de la heatmpa des topN genes
 CSA_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_CSA,
      labels_row = top_gene_names_CSA,
      annotation_col= annotations,
+     main = paste0(my_id, ' CSA vs HV - Heatmap - Top N genes '),
      scale="row")
 
 save_pheatmap_pdf(CSA_HV_heatmap_topN_genes, paste0(my_id,'_CSA-HV_heatmap_topN_genes.pdf'))
@@ -788,12 +800,13 @@ top_gene_names_SRL <- mutate(full_results_SRL, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_SRL <- exprs(data_filtr)[top_ids_of_interest_SRL,] 
+gene_matrix_top_SRL <- DataSYMBOL[top_ids_of_interest_SRL,] 
 
 ##Affichage de la heatmpa des topN genes
 SRL_HV_heatmap_topN_genes <- pheatmap(gene_matrix_top_SRL,
      labels_row = top_gene_names_SRL,
      annotation_col= annotations,
+     main = paste0(my_id, ' SRL vs HV - Heatmap - Top N genes '),
      scale="row")
 
 save_pheatmap_pdf(SRL_HV_heatmap_topN_genes, paste0(my_id,'_SRL-HV_heatmap_topN_genes.pdf'))
@@ -810,12 +823,13 @@ top_gene_names_DIFF <- mutate(full_results_DIFF, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top_DIFF <- exprs(data_filtr)[top_ids_of_interest_DIFF,] 
+gene_matrix_top_DIFF <- DataSYMBOL[top_ids_of_interest_DIFF,] 
 
 ##Affichage de la heatmpa des topN genes
 CSA_SRL_heatmap_topN_genes <- pheatmap(gene_matrix_top_DIFF,
      labels_row = top_gene_names_DIFF,
      annotation_col= annotations,
+     main = paste0(my_id, ' CSA vs SRL - Heatmap - Top N genes '),
      scale="row") 
 
 save_pheatmap_pdf(CSA_SRL_heatmap_topN_genes, paste0(my_id,'_CSA-SRL_heatmap_topN_genes.pdf'))
@@ -837,13 +851,14 @@ Baron_ids_of_interest_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_CSA <- exprs(data_filtr)[Baron_ids_of_interest_CSA,]
+Baron_gene_matrix_CSA <- DataSYMBOL[Baron_ids_of_interest_CSA,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_CSA)
 CSA_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_CSA,
          labels_row = Baron_gene_names_CSA,
          annotation_col= annotations,
+         main = paste0(my_id, ' CSA vs HV - Heatmap - 20 genes of tolerance (Baron et al. 2015)'),
          scale="row")
 
 save_pheatmap_pdf(CSA_HV_heatmap_20_genes, paste0(my_id,'_CSA-HV_heatmap_20_genes.pdf'))
@@ -857,13 +872,14 @@ Baron_ids_of_interest_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_gen
 Baron_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_SRL <- exprs(data_filtr)[Baron_ids_of_interest_SRL,]
+Baron_gene_matrix_SRL <- DataSYMBOL[Baron_ids_of_interest_SRL,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix_SRL)
 SRL_HV_heatmap_20_genes <- pheatmap(Baron_gene_matrix_SRL,
          labels_row = Baron_gene_names_SRL,
          annotation_col= annotations,
+         main = paste0(my_id, ' SRL vs HV - Heatmap - 20 genes of tolerance (Baron et al. 2015)'),
          scale="row")
 
 save_pheatmap_pdf(SRL_HV_heatmap_20_genes, paste0(my_id,'_SRL-HV_heatmap_20_genes.pdf'))
@@ -877,13 +893,14 @@ Baron_ids_of_interest_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_g
 Baron_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix_DIFF <- exprs(data_filtr)[Baron_ids_of_interest_DIFF,]
+Baron_gene_matrix_DIFF <- DataSYMBOL[Baron_ids_of_interest_DIFF,]
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Baron_gene_matrix__DIFF)
 CSA_SRL_heatmap_20_genes <- pheatmap(Baron_gene_matrix_DIFF,
          labels_row = Baron_gene_names_DIFF,
          annotation_col= annotations,
+         main = paste0(my_id, ' CSA vs SRL - Heatmap - 20 genes of tolerance (Baron et al. 2015)'),
          scale="row")
 
 save_pheatmap_pdf(CSA_SRL_heatmap_20_genes, paste0(my_id,'_CSA-SRL_heatmap_20_genes.pdf'))
@@ -910,12 +927,13 @@ Danger_gene_names_CSA <-  filter(full_results_CSA,GENE_SYMBOL %in% Danger_genes)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_CSA <- exprs(data_filtr)[Danger_ids_of_interest_CSA,]
+Danger_gene_matrix_CSA <- DataSYMBOL[Danger_ids_of_interest_CSA,]
 
 
 heatmap_6_genes_CSA <- pheatmap(Danger_gene_matrix_CSA,
          labels_row = Danger_gene_names_CSA,
          annotation_col= annotations,
+         main = paste0(my_id, ' CSA vs HV - Heatmap - 6 genes of tolerance (Danger et al. 2017)'),
          scale="row")
 
 save_pheatmap_pdf(heatmap_6_genes_CSA, paste0(my_id,'_CSA-HV_heatmap_6_genes.pdf'))
@@ -930,12 +948,13 @@ Danger_gene_names_SRL <-  filter(full_results_SRL,GENE_SYMBOL %in% Danger_genes)
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_SRL <- exprs(data_filtr)[Danger_ids_of_interest_SRL,]
+Danger_gene_matrix_SRL <- DataSYMBOL[Danger_ids_of_interest_SRL,]
 
 
 heatmap_6_genes_SRL <- pheatmap(Danger_gene_matrix_SRL,
          labels_row = Danger_gene_names_SRL,
          annotation_col= annotations,
+         main = paste0(my_id, ' SRL vs HV - Heatmap - 6 genes of tolerance (Danger et al. 2017)'),
          scale="row")
 
 save_pheatmap_pdf(heatmap_6_genes_SRL, paste0(my_id,'_SRL-HV_heatmap_6_genes.pdf'))
@@ -951,12 +970,13 @@ Danger_gene_names_DIFF <-  filter(full_results_DIFF,GENE_SYMBOL %in% Danger_gene
 
 #Affichage
 #rownames(sampleInfo) <- colnames(Danger_gene_matrix)
-Danger_gene_matrix_DIFF <- exprs(data_filtr)[Danger_ids_of_interest_DIFF,]
+Danger_gene_matrix_DIFF <- DataSYMBOL[Danger_ids_of_interest_DIFF,]
 
 
 heatmap_6_genes_DIFF <- pheatmap(Danger_gene_matrix_DIFF,
          labels_row = Danger_gene_names_DIFF,
          annotation_col= annotations,
+         main = paste0(my_id, ' CSA vs SRL - Heatmap - 6 genes of tolerance (Danger et al. 2017)'),
          scale="row")
 
 save_pheatmap_pdf(heatmap_6_genes_DIFF, paste0(my_id,'_CSA-SRL_heatmap_6_genes.pdf'))
@@ -1037,7 +1057,7 @@ ego_UP_CSA <- enrichGO(gene         = UpGenesSymb_CSA,
                 #qvalueCutoff  = 0.5,
                 minGSSize=5)
 
-
+dim(ego_UP_CSA)
 head(ego_UP_CSA)
 data.frame(ego_UP_CSA)
 
@@ -1073,7 +1093,7 @@ cnetplot(ego_UP_CSA, foldChange=geneList)
 
 ```{r}
 ## DOWN GENES
-ego_DOWN_CSA <- enrichGO(gene         = UpGenesSymb_CSA,
+ego_DOWN_CSA <- enrichGO(gene         = DownGenesSymb_CSA,
                 universe = geneList,
                 OrgDb         = org.Hs.eg.db,
                 keyType       = 'SYMBOL',
@@ -1119,7 +1139,7 @@ cnetplot(ego_DOWN_CSA, foldChange=geneList)
 
 ```{r}
 ## DIFF GENES
-ego_DIFF_CSA <- enrichGO(gene         = UpGenesSymb_CSA,
+ego_DIFF_CSA <- enrichGO(gene         = DiffGenesSymb_CSA,
                 universe = geneList,
                 OrgDb         = org.Hs.eg.db,
                 keyType       = 'SYMBOL',
@@ -1214,7 +1234,7 @@ dim(ego_UP_SRL)
 
 ```{r}
 ## DOWN GENES
-ego_DOWN_SRL <- enrichGO(gene         = UpGenesSymb_SRL,
+ego_DOWN_SRL <- enrichGO(gene         = DownGenesSymb_SRL,
                 universe = geneList,
                 OrgDb         = org.Hs.eg.db,
                 keyType       = 'SYMBOL',
