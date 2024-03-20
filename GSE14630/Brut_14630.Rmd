@@ -500,15 +500,25 @@ full_results %>%
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot"))
-ggsave(paste0(my_id,'-Volcano-plot.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - adj.P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-adj-P-Value.pdf'))
+
+full_results %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-adj-P-Value.pdf'))
 ```
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 
 ```{r}
 
 topN <- 20 #Nombre de genes affichés sur le graphe
+
 full_results %>% 
   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
@@ -519,8 +529,21 @@ full_results %>%
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Top20-plot.pdf'))
+  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - adj.P.Value'))
+ggsave(paste0(my_id,'-Volcano-Top20-plot-adj-P-Value.pdf'))
+
+full_results %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold", "blue", "grey"))+
+  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - P.Value'))
+ggsave(paste0(my_id,'-Volcano-Top20-plot-P-Value.pdf'))
 
 
 ```
@@ -579,7 +602,7 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
      annotation_col = annotations,
-     main = paste0(my_id, ' - Heatmap - Top ',topN,' 20 genes'))
+     main = paste0(my_id, ' - Heatmap - Top ',topN,' genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 
