@@ -470,9 +470,18 @@ full_results %>%
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot"))
-ggsave(paste0(my_id,'-Volcano-plot.pdf'))
+  scale_color_manual(values=c("gold","grey", "blue"))+
+  labs(title=paste0(my_id, " - Volcano plot - Adjusted P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Adj-P-Val.pdf'))
+
+full_results %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold","grey", "blue"))+
+  labs(title=paste0(my_id, " - Volcano plot - P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-P-Val.pdf'))
 ```
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 
@@ -483,14 +492,30 @@ full_results %>%
   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
   geom_point() +    
-  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_text_repel(col = "black", max.overlaps = 250)  + 
   geom_hline(yintercept = -log10(0.05),
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Top20-plot.pdf'))
+  scale_color_manual(values=c("gold","grey", "blue"))+
+  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - adj.P.Value'))
+ggsave(paste0(my_id,'-Volcano-Top20-plot-Adj-P-Value.pdf'))
+
+
+
+topN <- 20 #Nombre de genes affichés sur le graphe
+full_results %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 250)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold","grey", "blue"))+
+  labs(title=paste0(my_id, ' - Volcano plot - Top ',topN,' genes - P.Value'))
+ggsave(paste0(my_id,'-Volcano-Top20-plot-P-Value.pdf'))
 
 
 ```
@@ -507,10 +532,25 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  scale_color_manual(values=c("gold","grey", "blue")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL.pdf'))
+  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - adj.P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-adj.P.Value.pdf'))
+
+
+full_results %>% 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col = gene_type, label = Label)) + 
+  geom_point() + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("gold","grey", "blue")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-P.Value.pdf'))
 
 
 ```
@@ -1005,9 +1045,9 @@ print(design_NW)
 
 # lmFit
 ```{r}
-fit_WS <- lmFit(exprs(data_WS), design_WS)
-fit_WR <- lmFit(exprs(data_WR), design_WR)
-fit_NW <- lmFit(exprs(data_NW), design_NW)
+fit_WS <- lmFit(data_WS, design_WS)
+fit_WR <- lmFit(data_WR, design_WR)
+fit_NW <- lmFit(data_NW, design_NW)
 
 
 ```
@@ -1311,6 +1351,8 @@ filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
 
 
+
+```
 
 
 # Gene Ontology Term Enrichment analysis

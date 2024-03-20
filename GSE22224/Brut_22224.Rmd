@@ -181,7 +181,7 @@ dim(data_filtr)
 dim(eset)
 
 #Rassemble tout dans un dataset
-total <- cbind(fData(data_filtr), DataSYMBOL)
+total <- cbind(fData(data_filtr), exprs(data_filtr))
 dim(total)
 
 #Export des données d'expression
