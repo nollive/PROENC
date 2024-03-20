@@ -15,7 +15,7 @@ library(ggplot2)
 library(pheatmap)
 library(GEOquery)
 library(readr)
-#library(FactoMineR)
+library(FactoMineR)
 library(forcats)
 library(heatmap3)
 library(Biobase)
@@ -235,9 +235,7 @@ data_filtr <- sansDup
 summary(exprs(data_filtr))
 boxplot(exprs(data_filtr),outline=FALSE)
 ```
-```{r}
 
-```
 
 # Inspection des variables
 ```{r}
@@ -249,7 +247,7 @@ sampleInfo <- dplyr::select(sampleInfo, Patient,Time,Group_short,Group,Descripti
 
 ## Si jamais on a besoin de renommer nos variables (plus lisible)
 #sampleInfo <- dplyr::rename(sampleInfo,group = source_name_ch1, patient=characteristics_ch1)
-View(sampleInfo)
+##View(sampleInfo)
 ```
 
 
@@ -267,7 +265,7 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 
 # Création de notre vecteur annotations pour les heatmaps
-annotations = subset(sampleInfo, select = c(Group_short,Time))
+annotations = subset(sampleInfo, select = c(Group, Time))
 
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
@@ -306,7 +304,7 @@ features <- features %>%
   GENE_TITLE = `Gene Title`)
 
 #Affichage de features
-View(features)
+##View(features)
 
 #Export des features
 full_output <- cbind(features,exprs(data_filtr))
@@ -338,54 +336,53 @@ ggplot(aes(x = PC1, y=PC2, col=Group,label=GSM)) +
 
 ```{r}
 #PCA en utilisant FactoMineR
-#pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
+pca_bis <- PCA(X = t(exprs(data_filtr)), ncp = 5 , graph= FALSE)
 ```
 
 
 ```{r} 
 ## A MODIFIER
-# 
+
 # ##On va nous même faire le graphe pour montrer l'évolution de chaque sample avant changement (T0) et post changement de traitement (T1)
 # # Plot PCA
 # 
 # # Création de notre dataframe pour l'affichage de l'ACP
-# df_pca <- data.frame(
-#   Patient = sampleInfo$GSM,
-#   Time = sampleInfo$Group,
-#   PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
-#   PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
-# )
-# 
-# 
-# # Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
-# df_arrows <- df_pca %>%
-#   mutate(PC1_end = lead(PC1),
-#          PC2_end = lead(PC2)) %>%
-#   filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
-# 
-# 
-# #Titre des axes
-# PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
-# PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
-# 
-# 
-# # Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
-# pca_plot <- ggplot(
-#   df_pca, aes(x = PC1, y = PC2, color = Time)) +
-#   geom_point(size = 3) +
-#   geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ], 
-#                aes(xend = PC1_end, yend = PC2_end),
-#                arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
-#   geom_text(aes(label = Patient), vjust = -1) +
-#   geom_hline(yintercept = 0, linetype = "dotted") +
-#   geom_vline(xintercept = 0, linetype = "dotted") +
-#   ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
-#   labs(x = PC1_t , y = PC2_t, color = "Time") +
-#   theme_minimal()
-# 
-# 
-# # Afficher le plot de l'ACP
-# print(pca_plot)
+df_pca <- data.frame(
+  Patient = sampleInfo$GSM,
+  Time = sampleInfo$Group,
+  PC1 = pca_bis$ind$coord[, 1], #Coordonnées pour PC1
+  PC2 = pca_bis$ind$coord[, 2]  ##Coordonnées pour PC2
+)
+
+
+# Créer un dataframe pour les flèches reliant T0 et T1 pour chaque patient
+df_arrows <- df_pca %>%
+  mutate(PC1_end = lead(PC1),
+         PC2_end = lead(PC2)) %>%
+  filter(!is.na(PC1_end))  # Supprimer les lignes avec des valeurs manquantes
+
+
+#Titre des axes
+PC1_t = paste0("PC1 (", substr(pca_bis$eig[1,2],1,4) , "%)")
+PC2_t = paste0("PC2 (", substr(pca_bis$eig[2,2],1,4) ,"%)")
+
+
+# Plot PCA avec une seule flèche entre chaque paire de patients à T0 et T1
+pca_plot <- ggplot(
+  df_pca, aes(x = PC1, y = PC2, color = Time)) +
+  geom_point(size = 3) +
+  geom_segment(data = df_arrows[seq(1, nrow(df_arrows), by = 2), ],
+               aes(xend = PC1_end, yend = PC2_end),
+               arrow = arrow(length = unit(0.1, "inches")), alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_vline(xintercept = 0, linetype = "dotted") +
+  ggtitle("ACP avec l'évolution des patients entre T0 et T1") +
+  labs(x = PC1_t , y = PC2_t, color = "Group") +
+  theme_minimal()
+
+
+# Afficher le plot de l'ACP
+print(pca_plot)
 ```
 
 
@@ -405,7 +402,7 @@ sampleInfo <- sampleInfo %>%
 
 ##Création de la matrice de design 
 # ici on compare no withdrawal (N=4) and Tac withdrawal (N=14) + 3months post withdrawal
-design <- model.matrix(~0+ method, data = sampleInfo) 
+design <- model.matrix(~0 + method, data = sampleInfo) 
 
 # Afficher la matrice de design
 print(design)
@@ -417,7 +414,7 @@ contrasts <- makeContrasts( Comparaison= methodNoWithdrawal - methodWithdrawal, 
 
 # lmFit
 ```{r}
-fit <- lmFit(exprs(data_filtr), design)
+fit <- lmFit(DataSYMBOL, design)
 
 #Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
 head(fit$coefficients)
@@ -445,7 +442,7 @@ summary(topTable(fit2))
 
 full_results <- topTable(fit2, number=Inf)
 full_results <- tibble::rownames_to_column(full_results,"ID")
-View(full_results)
+#View(full_results)
 
 # AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
 fc_cutoff <- log2(1.5)
@@ -533,7 +530,7 @@ full_results %>%
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold","grey", "blue")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) +
+  geom_text_repel(col = "black", max.overlaps = 50000) +
   labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - adj.P.Value")
 ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-adj.P.Value.pdf'))
 
@@ -548,7 +545,7 @@ full_results %>%
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
   scale_color_manual(values=c("gold","grey", "blue")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) +
+  geom_text_repel(col = "black", max.overlaps = 50000) +
   labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - P.Value")
 ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-P.Value.pdf'))
 
@@ -581,7 +578,7 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top <- DataSYMBOL[top_ids_of_interest,]
 write.csv(gene_matrix_top, file=paste0(my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmap des topN genes
@@ -589,7 +586,7 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
      annotation_col = annotations,
-     main = paste0(my_id, ' - Heatmap - Top ',topN,' 20 genes'))
+     main = paste0(my_id, ' - Heatmap - Top ',topN,' genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 
@@ -609,7 +606,7 @@ Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
 Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix <- DataSYMBOL[Baron_ids_of_interest,]
 write.csv(x = Baron_gene_matrix, file = paste0(my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -636,7 +633,7 @@ Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 
 
 #Affichage
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix <- DataSYMBOL[Danger_ids_of_interest,]
 write.csv(x = Danger_gene_matrix, file=paste0(my_id,"_filtered_results_6_genes.csv"))
 
 
@@ -665,9 +662,9 @@ sampleInfo <- sampleInfo %>%
 index_WS <- which(data_filtr$Group == "WS")
 index_WR <- which(data_filtr$Group == "WR")
 index_NW <- which(data_filtr$Group == "NW")
-data_WS <- data_filtr[,index_WS]
-data_WR <- data_filtr[,index_WR]
-data_NW <- data_filtr[,index_NW]
+data_WS <- DataSYMBOL[,index_WS]
+data_WR <- DataSYMBOL[,index_WR]
+data_NW <- DataSYMBOL[,index_NW]
 dim(data_WS)
 dim(data_WR)
 dim(data_NW)
@@ -679,9 +676,9 @@ design_WS <- model.matrix(~0+ Time, data = sampleInfo[index_WS,])
 design_WR <- model.matrix(~0+ Time, data = sampleInfo[index_WR,])
 design_NW <- model.matrix(~0+ Time, data = sampleInfo[index_NW,])
 # Afficher la matrice de design
-print(design_WS)
-print(design_WR)
-print(design_NW)
+# print(design_WS)
+# print(design_WR)
+# print(design_NW)
 
 ```
 
@@ -690,18 +687,15 @@ print(design_NW)
 
 # lmFit
 ```{r}
-fit_WS <- lmFit(exprs(data_WS), design_WS)
-fit_WR <- lmFit(exprs(data_WR), design_WR)
-fit_NW <- lmFit(exprs(data_NW), design_NW)
-
-
+fit_WS <- lmFit(data_WS, design_WS)
+fit_WR <- lmFit(data_WR, design_WR)
+fit_NW <- lmFit(data_NW, design_NW)
 ```
 
 
 #Définition de nos contrasts pour la differencial expression
 
 ```{r}
-
 ## On compare T0 et T1 pour chacun des sous ensembles
 contrasts_WS <- makeContrasts(EffetTimeWS = TimeT1 - TimeT0,
                            levels=colnames(design_WS))
@@ -715,8 +709,6 @@ contrasts_NW <- makeContrasts(EffetTimeNW = TimeT1 - TimeT0,
 fit2_WS <- contrasts.fit(fit_WS, contrasts_WS)
 fit2_WR <- contrasts.fit(fit_WR, contrasts_WR)
 fit2_NW <- contrasts.fit(fit_NW, contrasts_NW)
-
-
 ```
 
 # On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
@@ -834,9 +826,18 @@ full_results_WS %>%
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison WS - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison WS - Time T0 vs T1 - Adj.P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-Adj-P-Value.pdf'))
+
+full_results_WS %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison WS - Time T0 vs T1 - P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-P-Value.pdf'))
 
 ```
 
@@ -847,9 +848,18 @@ full_results_WR %>%
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison WR - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison WR - Time T0 vs T1 - Adj.P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-Adj-P-Value.pdf'))
+
+full_results_WR %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison WR - Time T0 vs T1 - P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-P-Value.pdf'))
 
 ```
 
@@ -860,9 +870,18 @@ full_results_NW %>%
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison NW - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison NW - Time T0 vs T1 - Adj.P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-Adj-P-Value.pdf'))
+
+full_results_NW %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type)) + geom_point() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, " - Volcano plot - Comparaison NW - Time T0 vs T1 - P.Value"))
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-P-Value.pdf'))
 
 ```
 
@@ -884,9 +903,24 @@ full_results_WS %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - WS - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-WS-Time-Top20-plot.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - WS - Time T0 vs T1 - Top ',topN,' genes - Adj.P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-WS-Time-Top20-plot-Adj-P-Value.pdf'))
+
+full_results_WS %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - WS - Time T0 vs T1 - Top ',topN,' genes - P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-WS-Time-Top20-plot-P-Value.pdf'))
+
+
 
 filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
@@ -904,9 +938,22 @@ full_results_WR %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - WR - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-WR-Time-Top20-plot.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - WR - Time T0 vs T1 - Top ',topN,' genes - Adj.P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-WR-Time-Top20-plot-Adj-P-Value.pdf'))
+
+full_results_WR %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - WR - Time T0 vs T1 - Top ',topN,' genes - P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-WR-Time-Top20-plot-P-Value.pdf'))
 
 filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
@@ -924,9 +971,22 @@ full_results_NW %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - NW - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-NW-Time-Top20-plot.pdf'))
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - NW - Time T0 vs T1 - Top ',topN,' genes - Adj.P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-NW-Time-Top20-plot-Adj-P-Value.pdf'))
+
+full_results_NW %>% 
+  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col=gene_type,label=Label)) + 
+  geom_point() +    
+  geom_text_repel(col = "black", max.overlaps = 25)  + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold"))+
+  labs(title=paste0(my_id, ' - Volcano plot - NW - Time T0 vs T1 - Top ',topN,' genes - P.Value'))
+ggsave(paste0(my_id,'-Volcano-Comparaison-NW-Time-Top20-plot-P-Value.pdf'))
 
 filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
@@ -950,10 +1010,25 @@ full_results_WS %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - WS - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-20-genes-TOL.pdf'))
+  labs(title="Volcano plot - WS - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - Adj.P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-20-genes-TOL-Adj-P-Value.pdf'))
+
+full_results_WS %>% 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col = gene_type, label = Label)) + 
+  geom_point() + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - WS - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-20-genes-TOL-P-Value.pdf'))
+
 
 filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
@@ -963,7 +1038,6 @@ filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
 ```{r}
 #WR - Time T0 vs T1
 full_results_WR %>% 
-  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
   dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
   geom_point() + 
@@ -971,10 +1045,23 @@ full_results_WR %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - WR - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-20-genes-TOL.pdf'))
+  labs(title="Volcano plot - WR - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - Adj.P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-20-genes-TOL-Adj-P-Value.pdf'))
+
+full_results_WR %>% 
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col = gene_type, label = Label)) + 
+  geom_point() + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - WR - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-20-genes-TOL-P-Value.pdf'))
 
 filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
@@ -992,10 +1079,24 @@ full_results_NW %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
   geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - NW - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-20-genes-TOL.pdf'))
+  labs(title="Volcano plot - NW - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - Adj.P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-20-genes-TOL-Adj-P-Value.pdf'))
+
+full_results_NW %>% 
+  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
+  ggplot(aes(x = logFC, y = -log10(P.Value), col = gene_type, label = Label)) + 
+  geom_point() + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dashed")+
+  scale_color_manual(values=c("grey", "blue", "gold")) + 
+  geom_text_repel(col = "black", max.overlaps = 5000) +
+  labs(title="Volcano plot - NW - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015) - P.Value")
+ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-20-genes-TOL-P-Value.pdf'))
 
 filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
   write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
@@ -1003,40 +1104,40 @@ filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
 
 
 
-
+## Out of date
 ## ESSAI AVEC LES MOYENNES D'EXPRESSION
 ## Analyse T0 vs T1 pour WR, WS et NW
 
 # Création de notre matrice design et constrast
 ```{r}
-sampleInfo <- sampleInfo %>%
-  mutate(method = case_when(Group == "NW" ~ "NoWithdrawal",
-                                Group == "WR" | Group == "WS" ~ "Withdrawal")) 
-
-sampleInfo <- sampleInfo %>%
-  mutate(method = fct_relevel(method, "NoWithdrawal", "Withdrawal")) 
-
-
-index_WS <- which(data_filtr$Group == "WS")
-index_WR <- which(data_filtr$Group == "WR")
-index_NW <- which(data_filtr$Group == "NW")
-data_WS <- DataSYMBOL[,index_WS]
-data_WR <- DataSYMBOL[,index_WR]
-data_NW <- DataSYMBOL[,index_NW]
-dim(data_WS)
-dim(data_WR)
-dim(data_NW)
-dim(data_filtr)
-
-##Création de la matrice de design 
-# ici on compare T0 et T1 pour chacun des groupes
-design_WS <- model.matrix(~0+ Time, data = sampleInfo[index_WS,])
-design_WR <- model.matrix(~0+ Time, data = sampleInfo[index_WR,])
-design_NW <- model.matrix(~0+ Time, data = sampleInfo[index_NW,])
-# Afficher la matrice de design
-print(design_WS)
-print(design_WR)
-print(design_NW)
+# sampleInfo <- sampleInfo %>%
+#   mutate(method = case_when(Group == "NW" ~ "NoWithdrawal",
+#                                 Group == "WR" | Group == "WS" ~ "Withdrawal"))
+# 
+# sampleInfo <- sampleInfo %>%
+#   mutate(method = fct_relevel(method, "NoWithdrawal", "Withdrawal"))
+# 
+# 
+# index_WS <- which(data_filtr$Group == "WS")
+# index_WR <- which(data_filtr$Group == "WR")
+# index_NW <- which(data_filtr$Group == "NW")
+# data_WS <- DataSYMBOL[,index_WS]
+# data_WR <- DataSYMBOL[,index_WR]
+# data_NW <- DataSYMBOL[,index_NW]
+# dim(data_WS)
+# dim(data_WR)
+# dim(data_NW)
+# dim(data_filtr)
+# 
+# ##Création de la matrice de design
+# # ici on compare T0 et T1 pour chacun des groupes
+# design_WS <- model.matrix(~0+ Time, data = sampleInfo[index_WS,])
+# design_WR <- model.matrix(~0+ Time, data = sampleInfo[index_WR,])
+# design_NW <- model.matrix(~0+ Time, data = sampleInfo[index_NW,])
+# # Afficher la matrice de design
+# print(design_WS)
+# print(design_WR)
+# print(design_NW)
 
 ```
 
@@ -1045,9 +1146,9 @@ print(design_NW)
 
 # lmFit
 ```{r}
-fit_WS <- lmFit(data_WS, design_WS)
-fit_WR <- lmFit(data_WR, design_WR)
-fit_NW <- lmFit(data_NW, design_NW)
+# fit_WS <- lmFit(data_WS, design_WS)
+# fit_WR <- lmFit(data_WR, design_WR)
+# fit_NW <- lmFit(data_NW, design_NW)
 
 
 ```
@@ -1056,83 +1157,83 @@ fit_NW <- lmFit(data_NW, design_NW)
 #Définition de nos contrasts pour la differencial expression
 
 ```{r}
-
-## On compare T0 et T1 pour chacun des sous ensembles
-contrasts_WS <- makeContrasts(EffetTimeWS = TimeT0 - TimeT1,
-                           levels=colnames(design_WS))
-contrasts_WR <- makeContrasts(EffetTimeWR = TimeT0 - TimeT1,
-                           levels=colnames(design_WR))
-contrasts_NW <- makeContrasts(EffetTimeNW = TimeT0 - TimeT1,
-                           levels=colnames(design_NW))
-
-# On applique nos constrasts 
-
-fit2_WS <- contrasts.fit(fit_WS, contrasts_WS)
-fit2_WR <- contrasts.fit(fit_WR, contrasts_WR)
-fit2_NW <- contrasts.fit(fit_NW, contrasts_NW)
+# 
+# ## On compare T0 et T1 pour chacun des sous ensembles
+# contrasts_WS <- makeContrasts(EffetTimeWS = TimeT0 - TimeT1,
+#                            levels=colnames(design_WS))
+# contrasts_WR <- makeContrasts(EffetTimeWR = TimeT0 - TimeT1,
+#                            levels=colnames(design_WR))
+# contrasts_NW <- makeContrasts(EffetTimeNW = TimeT0 - TimeT1,
+#                            levels=colnames(design_NW))
+# 
+# # On applique nos constrasts
+# 
+# fit2_WS <- contrasts.fit(fit_WS, contrasts_WS)
+# fit2_WR <- contrasts.fit(fit_WR, contrasts_WR)
+# fit2_NW <- contrasts.fit(fit_NW, contrasts_NW)
 
 
 ```
 
 # On utilise *empirical Bayes'* pour avoir les p-values de chaque gènes (première estimation?)
 ```{r}
-fit2_WS <- eBayes(fit2_WS)
-fit2_WR <- eBayes(fit2_WR)
-fit2_NW <- eBayes(fit2_NW)
-
-
-# Résultats avec topTable
-topTable(fit2_WS)
-comparisonWS = "EffetTimeWS"
-topTable(fit2_WS, coef=comparisonWS, adjust.method="BH")
-#decideTests donne cb de genes sont differentially expressed
-decideTests(fit2_WS)
-table(decideTests(fit2_WS))
-
-# Résultats avec topTable
-topTable(fit2_WR)
-comparisonWR = "EffetTimeWR"
-topTable(fit2_WR, coef=comparisonWR, adjust.method="BH")
-#decideTests donne cb de genes sont differentially expressed
-decideTests(fit2_WR)
-table(decideTests(fit2_WR))
-
-# Résultats avec topTable
-topTable(fit2_NW)
-comparisonNW = "EffetTimeNW"
-topTable(fit2_NW, coef=comparisonNW, adjust.method="BH")
-#decideTests donne cb de genes sont differentially expressed
-decideTests(fit2_NW)
-table(decideTests(fit2_NW))
+# fit2_WS <- eBayes(fit2_WS)
+# fit2_WR <- eBayes(fit2_WR)
+# fit2_NW <- eBayes(fit2_NW)
+# 
+# 
+# # Résultats avec topTable
+# topTable(fit2_WS)
+# comparisonWS = "EffetTimeWS"
+# topTable(fit2_WS, coef=comparisonWS, adjust.method="BH")
+# #decideTests donne cb de genes sont differentially expressed
+# decideTests(fit2_WS)
+# table(decideTests(fit2_WS))
+# 
+# # Résultats avec topTable
+# topTable(fit2_WR)
+# comparisonWR = "EffetTimeWR"
+# topTable(fit2_WR, coef=comparisonWR, adjust.method="BH")
+# #decideTests donne cb de genes sont differentially expressed
+# decideTests(fit2_WR)
+# table(decideTests(fit2_WR))
+# 
+# # Résultats avec topTable
+# topTable(fit2_NW)
+# comparisonNW = "EffetTimeNW"
+# topTable(fit2_NW, coef=comparisonNW, adjust.method="BH")
+# #decideTests donne cb de genes sont differentially expressed
+# decideTests(fit2_NW)
+# table(decideTests(fit2_NW))
 ```
 
 
 # Visualisation des resultat de la differencial expression
 
 ```{r}
-fit2_WS$genes <- features
-summary(topTable(fit2_WS))
-
-fit2_WR$genes <- features
-summary(topTable(fit2_WR))
-
-fit2_NW$genes <- features
-summary(topTable(fit2_NW))
+# fit2_WS$genes <- features
+# summary(topTable(fit2_WS))
+# 
+# fit2_WR$genes <- features
+# summary(topTable(fit2_WR))
+# 
+# fit2_NW$genes <- features
+# summary(topTable(fit2_NW))
 ```
 
 ```{r}
-#full_results <- topTable(fit2, number=Inf)
-full_results_WS <- topTable(fit2_WS, coef=comparisonWS, adjust.method="BH", number=Inf)
-full_results_WR <- topTable(fit2_WR, coef=comparisonWR, adjust.method="BH", number=Inf)
-full_results_NW <- topTable(fit2_NW, coef=comparisonNW, adjust.method="BH", number=Inf)
-
-full_results_WS <- tibble::rownames_to_column(full_results_WS,"ID")
-full_results_WR <- tibble::rownames_to_column(full_results_WR,"ID")
-full_results_NW <- tibble::rownames_to_column(full_results_NW,"ID")
-
-View(full_results_WS)
-View(full_results_WR)
-View(full_results_NW)
+# #full_results <- topTable(fit2, number=Inf)
+# full_results_WS <- topTable(fit2_WS, coef=comparisonWS, adjust.method="BH", number=Inf)
+# full_results_WR <- topTable(fit2_WR, coef=comparisonWR, adjust.method="BH", number=Inf)
+# full_results_NW <- topTable(fit2_NW, coef=comparisonNW, adjust.method="BH", number=Inf)
+# 
+# full_results_WS <- tibble::rownames_to_column(full_results_WS,"ID")
+# full_results_WR <- tibble::rownames_to_column(full_results_WR,"ID")
+# full_results_NW <- tibble::rownames_to_column(full_results_NW,"ID")
+# 
+# #View(full_results_WS)
+# #View(full_results_WR)
+# #View(full_results_NW)
 ```
 
 
@@ -1140,216 +1241,216 @@ View(full_results_NW)
 # Visualisation des resultat de la differencial expression
 
 ```{r}
-# AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
-fc_cutoff <- log2(1.5)
-p_cutoff <- 0.05
-
-## WS - Time T0 vs T1
-full_results_WS <- full_results_WS %>%
-  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
-                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
-                               TRUE ~ "ns")) 
-
-cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
-full_results_WS <- full_results_WS %>%
-  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
-
-
-## WR - Time T0 vs T1
-full_results_WR <- full_results_WR %>%
-  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
-                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
-                               TRUE ~ "ns")) 
-
-cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
-full_results_WR <- full_results_WR %>%
-  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
-
-
-## NW - Time T0 vs T1
-full_results_NW <- full_results_NW %>%
-  mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
-                               logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
-                               TRUE ~ "ns")) 
-
-cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
-full_results_NW <- full_results_NW %>%
-  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
+# # AJOUT DE LA CATEGORIE UP/DOWN OU NON SIGNIFICATIF
+# fc_cutoff <- log2(1.5)
+# p_cutoff <- 0.05
+# 
+# ## WS - Time T0 vs T1
+# full_results_WS <- full_results_WS %>%
+#   mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+#                                logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+#                                TRUE ~ "ns"))
+# 
+# cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey")
+# full_results_WS <- full_results_WS %>%
+#   mutate(gene_type = fct_relevel(gene_type, "up", "down"))
+# 
+# 
+# ## WR - Time T0 vs T1
+# full_results_WR <- full_results_WR %>%
+#   mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+#                                logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+#                                TRUE ~ "ns"))
+# 
+# cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey")
+# full_results_WR <- full_results_WR %>%
+#   mutate(gene_type = fct_relevel(gene_type, "up", "down"))
+# 
+# 
+# ## NW - Time T0 vs T1
+# full_results_NW <- full_results_NW %>%
+#   mutate(gene_type = case_when(logFC >= fc_cutoff & adj.P.Val <= 0.05 ~ "up",
+#                                logFC <= -fc_cutoff & adj.P.Val <= 0.05 ~ "down",
+#                                TRUE ~ "ns"))
+# 
+# cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey")
+# full_results_NW <- full_results_NW %>%
+#   mutate(gene_type = fct_relevel(gene_type, "up", "down"))
 ```
 
 ## WS - Time T0 vs T1
 ```{r}
-full_results_WS %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison WS - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time.pdf'))
+# full_results_WS %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+#   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, " - Volcano plot - Comparaison WS - Time T0 vs T1"))
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time.pdf'))
 
 ```
 
 ## WR - Time T0 vs T1
 ```{r}
-full_results_WR %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison WR - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time.pdf'))
+# full_results_WR %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+#   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, " - Volcano plot - Comparaison WR - Time T0 vs T1"))
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time.pdf'))
 
 ```
 
 ## NW - Time T0 vs T1
 ```{r}
-full_results_NW %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, " - Volcano plot - Comparaison NW - Time T0 vs T1"))
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time.pdf'))
+# full_results_NW %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type)) + geom_point() +
+#   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, " - Volcano plot - Comparaison NW - Time T0 vs T1"))
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time.pdf'))
 
 ```
 
 
 ## Affichage des 20 gènes ayant leur expression la plus modifiée
 ```{r}
-topN <- 20 #Nombre de genes affichés sur le graphe
+# topN <- 20 #Nombre de genes affichés sur le graphe
 ```
 
 
 ```{r}
-#WS - Time T0 vs T1
-full_results_WS %>% 
-  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
-  geom_point() +    
-  geom_text_repel(col = "black", max.overlaps = 25)  + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - WS - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-WS-Time-Top20-plot.pdf'))
-
-filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
+# #WS - Time T0 vs T1
+# full_results_WS %>%
+#   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) +
+#   geom_point() +
+#   geom_text_repel(col = "black", max.overlaps = 25)  +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, ' - Volcano plot - WS - Time T0 vs T1 - Top ',topN,' genes '))
+# ggsave(paste0(my_id,'-Volcano-Comparaison-WS-Time-Top20-plot.pdf'))
+# 
+# filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
 ```
 
 
 ```{r}
-#WS - Time T0 vs T1
-full_results_WR %>% 
-  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
-  geom_point() +    
-  geom_text_repel(col = "black", max.overlaps = 25)  + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - WR - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-WR-Time-Top20-plot.pdf'))
-
-filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
+# #WS - Time T0 vs T1
+# full_results_WR %>%
+#   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) +
+#   geom_point() +
+#   geom_text_repel(col = "black", max.overlaps = 25)  +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, ' - Volcano plot - WR - Time T0 vs T1 - Top ',topN,' genes '))
+# ggsave(paste0(my_id,'-Volcano-Comparaison-WR-Time-Top20-plot.pdf'))
+# 
+# filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
 ```
 
 
 ```{r}
-#NW - Time T0 vs T1
-full_results_NW %>% 
-  dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) + 
-  geom_point() +    
-  geom_text_repel(col = "black", max.overlaps = 25)  + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey"))+
-  labs(title=paste0(my_id, ' - Volcano plot - NW - Time T0 vs T1 - Top ',topN,' genes '))
-ggsave(paste0(my_id,'-Volcano-Comparaison-NW-Time-Top20-plot.pdf'))
-
-filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
+# #NW - Time T0 vs T1
+# full_results_NW %>%
+#   dplyr::mutate(Rank = 1:n(), Label = ifelse(Rank < topN, GENE_SYMBOL,"")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col=gene_type,label=Label)) +
+#   geom_point() +
+#   geom_text_repel(col = "black", max.overlaps = 25)  +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey"))+
+#   labs(title=paste0(my_id, ' - Volcano plot - NW - Time T0 vs T1 - Top ',topN,' genes '))
+# ggsave(paste0(my_id,'-Volcano-Comparaison-NW-Time-Top20-plot.pdf'))
+# 
+# filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
 ```
 
 
 
 ## Affichage des 20 gènes de la tolérance (Baron et al. 2015)
 ```{r}
-my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
+# my_genes <- c("TCL1A", "MZB1", "CD22", "BLK", "MS4A1", "CD79B", "BLNK", "FCRL2", "IRF4", "ID3", "AKR1C3", "HINT1", "ANXA2R","CD40", "FCER2", "CTLA4", "AKIRIN2", "EPS15", "PLBD1")
 ```
 
 ```{r}
-#WS - Time T0 vs T1
-full_results_WS %>% 
-  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
-  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
-  geom_point() + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - WS - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-20-genes-TOL.pdf'))
-
-filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
-```
-
-
-```{r}
-#WR - Time T0 vs T1
-full_results_WR %>% 
-  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
-  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
-  geom_point() + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - WR - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-20-genes-TOL.pdf'))
-
-filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
+# #WS - Time T0 vs T1
+# full_results_WS %>%
+#   dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+#   dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) +
+#   geom_point() +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey")) +
+#   geom_text_repel(col = "black", max.overlaps = 5000) +
+#   labs(title="Volcano plot - WS - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WS-Time-20-genes-TOL.pdf'))
+# 
+# filter(full_results_WS, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_WS-TIME_filtered_significant_results.csv"))
 ```
 
 
 ```{r}
-#NW - Time T0 vs T1
-full_results_NW %>% 
-  dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
-  dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>% 
-  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) + 
-  geom_point() + 
-  geom_hline(yintercept = -log10(0.05),
-             linetype = "dashed") + 
-  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
-             linetype = "dashed")+
-  scale_color_manual(values=c("gold", "blue", "grey")) + 
-  geom_text_repel(col = "black", max.overlaps = 5000) +
-  labs(title="Volcano plot - NW - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
-ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-20-genes-TOL.pdf'))
+# #WR - Time T0 vs T1
+# full_results_WR %>%
+#   dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+#   dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) +
+#   geom_point() +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey")) +
+#   geom_text_repel(col = "black", max.overlaps = 5000) +
+#   labs(title="Volcano plot - WR - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-WR-Time-20-genes-TOL.pdf'))
+# 
+# filter(full_results_WR, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_WR-TIME_filtered_significant_results.csv"))
+```
 
-filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
-  write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
 
+```{r}
+# #NW - Time T0 vs T1
+# full_results_NW %>%
+#   dplyr::mutate(Significant = adj.P.Val < p_cutoff & abs(logFC) > fc_cutoff) %>%
+#   dplyr::mutate(Rank = rank(dplyr::desc(abs(logFC))), Label = ifelse(GENE_SYMBOL %in% my_genes, as.character(GENE_SYMBOL), "")) %>%
+#   ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = gene_type, label = Label)) +
+#   geom_point() +
+#   geom_hline(yintercept = -log10(0.05),
+#              linetype = "dashed") +
+#   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+#              linetype = "dashed")+
+#   scale_color_manual(values=c("gold", "blue", "grey")) +
+#   geom_text_repel(col = "black", max.overlaps = 5000) +
+#   labs(title="Volcano plot - NW - Time T0 vs T1 - 20 genes of tolerance (Baron et al. 2015)")
+# ggsave(paste0(my_id,'-Volcano-plot-Comparaison-NW-Time-20-genes-TOL.pdf'))
+# 
+# filter(full_results_NW, adj.P.Val < 0.05, abs(logFC) > fc_cutoff) %>%
+#   write_csv(path=paste0(my_id,"_NW-TIME_filtered_significant_results.csv"))
+# 
 
 
 ```
