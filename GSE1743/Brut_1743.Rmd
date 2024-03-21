@@ -282,7 +282,7 @@ ggplot(aes(x = PC1, y=PC2, col=Group_short,label=GSM)) +
 ```{r}
 # A refaire proprement mais fonctionne
 GSM_outliers <- c("GSM30454")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
 
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
