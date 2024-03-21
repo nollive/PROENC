@@ -261,7 +261,7 @@ rownames(sampleInfo) <- colnames(corMatrix)
 
 
 # Création de notre vecteur annotations pour les heatmaps
-annotations = subset(sampleInfo, select = Group_short)
+annotations = subset(sampleInfo, select = Time)
 
 # Récupérer l'ordre des lignes en fonction de sampleInfo$GSM
 order_rows <- order(sampleInfo$GSM)
@@ -342,7 +342,7 @@ pca <- prcomp(t(exprs(data_filtr)))
 
 ##Rajouter les informations des patients
 cbind(sampleInfo, pca$x) %>% 
-ggplot(aes(x = PC1, y=PC2, col=Group,label=paste("Patient", Patient))) + 
+ggplot(aes(x = PC1, y=PC2, col=Time,label=paste("Patient", Patient))) + 
   geom_point() + 
   geom_text_repel()
 ```
