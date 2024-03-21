@@ -297,6 +297,8 @@ heatmapGSM_filtr <- pheatmap(corMatrix_outliers,
 
 save_pheatmap_pdf(heatmapGSM_filtr, paste0(my_id,'_heatmap-GSM-sans-outliers.pdf'))
 
+dim(data_filtr)
+dim(data_outliers)
 #Si cela nous convient:
 data_filtr <- data_outliers
 

@@ -321,7 +321,8 @@ save_pheatmap_pdf(heatmapGSM_nofiltr, paste0(my_id,'_heatmap-GSM-with-outliers.p
 
 # ENLEVER SRL
 GSM_outliers <- c("GSM553458")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
+length(GSM_keep)
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
@@ -338,7 +339,8 @@ save_pheatmap_pdf(heatmapGSM_filtr_SRL, paste0(my_id,'_heatmap-GSM-sans-SRL.pdf'
 
 # Enlever HV et CsA
 GSM_outliers <- c("GSM553485", "GSM553459")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
+length(GSM_keep)
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
@@ -355,7 +357,9 @@ save_pheatmap_pdf(heatmapGSM_filtr_CSA_HV, paste0(my_id,'_heatmap-GSM-sans-CSA-H
 
 #Enlever HV et SRL
 GSM_outliers <- c("GSM553485", "GSM553458")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
+
+
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
@@ -371,7 +375,8 @@ save_pheatmap_pdf(heatmapGSM_filtr_SRL_HV, paste0(my_id,'_heatmap-GSM-sans-SRL-H
 
 #Enlever les 3
 GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers, drop = TRUE]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
+
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
@@ -387,7 +392,7 @@ save_pheatmap_pdf(heatmapGSM_filtr_CSA_SRL_HV, paste0(my_id,'_heatmap-GSM-sans-C
 
 ## On choisi les outliers à enlever qui nous conviennent -> ICI LES 3
 GSM_outliers <- c("GSM553485", "GSM553459", "GSM553458")
-GSM_keep <- sampleInfo$GSM[sampleInfo$GSM != GSM_outliers]
+GSM_keep <- sampleInfo$GSM[!sampleInfo$GSM %in% GSM_outliers]
 data_outliers <- data_filtr[, GSM_keep]
 dim(data_outliers)
 dim(data_filtr)
