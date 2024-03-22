@@ -310,9 +310,11 @@ dim(data_outliers)
 #Si cela nous convient:
 data_filtr <- data_outliers
 
+
 #Modification de sampleInfo:
 sampleInfo <- sampleInfo[ GSM_keep,]
 dim(sampleInfo)
+DataSYMBOL <- DataSYMBOL[,GSM_keep]
 ```
 
 
