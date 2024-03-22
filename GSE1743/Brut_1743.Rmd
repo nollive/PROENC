@@ -169,6 +169,14 @@ dim(data_filtr)
 library(Affyhgu133aExpr)
 #data_replicates <- nsFilter(eset = data_filtr, require.entrez=TRUE, remove.dupEntrez=TRUE)
 #dim(data_replicates)
+##Aggr?ger les r?plicats de g?nes par moyenne: ####
+
+## Méthode R. Danger
+DataSYMBOL <- aggregate(exprs(data_filtr), by= list(fData(data_filtr)$"Gene Symbol"), mean)
+dim(DataSYMBOL)
+rownames(DataSYMBOL) <- DataSYMBOL[,1]
+DataSYMBOL <- as.matrix(DataSYMBOL[-1])
+dim(DataSYMBOL)
 
 ##### END import #####
 ```
@@ -350,7 +358,7 @@ contrasts <- makeContrasts( Comparaison=Group_shortCYCLOSPORINE - Group_shortSIR
 
 # lmFit
 ```{r}
-fit <- lmFit(exprs(data_filtr), design)
+fit <- lmFit(DataSYMBOL, design)
 
 #Vérifier qu'il n'y a pas de pb (sur les premiers coefficients)
 head(fit$coefficients)
@@ -472,7 +480,7 @@ top_gene_names <- mutate(full_results, Rank = 1:n()) %>%
   pull(GENE_SYMBOL) 
 
 ## Recupere les expressions des genes d'interet
-gene_matrix_top <- exprs(data_filtr)[top_ids_of_interest,]
+gene_matrix_top <- DataSYMBOL[top_ids_of_interest,]
 write.csv(gene_matrix_top, file=paste0(my_id,"_filtered_results_topN_genes.csv"))
 
 ##Affichage de la heatmap des topN genes
@@ -498,7 +506,7 @@ Baron_ids_of_interest <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>%
 Baron_gene_names <-  filter(full_results,GENE_SYMBOL %in% Baron_genes) %>% 
   pull(GENE_SYMBOL)
 
-Baron_gene_matrix <- exprs(data_filtr)[Baron_ids_of_interest,]
+Baron_gene_matrix <- DataSYMBOL[Baron_ids_of_interest,]
 write.csv(x = Baron_gene_matrix, file = paste0(my_id,"_filtered_results_20_genes.csv"))
 
 #Affichage
@@ -525,7 +533,7 @@ Danger_gene_names <-  filter(full_results,GENE_SYMBOL %in% Danger_genes) %>%
 
 
 #Affichage
-Danger_gene_matrix <- exprs(data_filtr)[Danger_ids_of_interest,]
+Danger_gene_matrix <- DataSYMBOL[Danger_ids_of_interest,]
 write.csv(x = Danger_gene_matrix, file=paste0(my_id,"_filtered_results_6_genes.csv"))
 
 
