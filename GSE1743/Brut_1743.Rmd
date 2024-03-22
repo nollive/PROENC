@@ -480,7 +480,7 @@ heatmap_topN_genes <- pheatmap(gene_matrix_top,
      labels_row = top_gene_names,
      scale="row",
      annotation_col = annotations,
-     main = paste0(my_id, ' - Heatmap - Top ',topN,' 20 genes'))
+     main = paste0(my_id, ' - Heatmap - Top ',topN,' genes'))
 
 save_pheatmap_pdf(heatmap_topN_genes, paste0(my_id,'_heatmap_topN_genes.pdf'))
 ```

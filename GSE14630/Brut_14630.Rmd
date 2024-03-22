@@ -489,7 +489,8 @@ full_results <- full_results %>%
 
 cols <- c("up" = "gold", "down" = "blue", "ns" = "darkgrey") 
 full_results <- full_results %>%
-  mutate(gene_type = fct_relevel(gene_type, "up", "down")) 
+  mutate(gene_type = fct_relevel(gene_type, "up", "down"))
+write_csv(full_results, file = paste0(my_id, '-raw-results.csv'))
 ```
 
 
@@ -560,7 +561,7 @@ full_results %>%
              linetype = "dashed") + 
   geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
              linetype = "dashed")+
-  sscale_color_manual(values=c("grey", "blue", "gold"))+ 
+  scale_color_manual(values=c("grey", "blue", "gold"))+ 
   geom_text_repel(col = "black", max.overlaps = 5000) +
   labs(title="Volcano plot - 20 genes of tolerance (Baron et al. 2015) - adj.P.Value")
 ggsave(paste0(my_id,'-Volcano-plot-20-genes-TOL-adj-P-Value.pdf'))
