@@ -285,6 +285,7 @@ corMatrix_ordered <- corMatrix[order_rows, order_rows]
 # Créer la heatmap en utilisant pheatmap avec les lignes ordonnées #ne fonctionne pas pour l'instant
 heatmapGSM_nofiltr <- pheatmap(corMatrix_ordered, 
          annotation_col = annotations,
+         show_colnames = FALSE,
          main = paste0(my_id,' - Heatmap - GSM with outliers'))
 
 
@@ -361,6 +362,8 @@ dim(data_filtr)
 corMatrix_outliers_CSA_SRL_HV <- cor(exprs(data_outliers), use = "c")
 heatmapGSM_filtr_CSA_SRL_HV <- pheatmap(corMatrix_outliers_CSA_SRL_HV,
          annotation_col = annotations,
+         show_colnames = FALSE,
+         show_rownames = FALSE,
          main = paste0(my_id, ' - Heatmap - Without outlier (', paste(as.character(GSM_outliers), collapse = "-"), ')'))
 
 save_pheatmap_pdf(heatmapGSM_filtr_CSA_SRL_HV, paste0(my_id,'_heatmap-GSM-sans-CSA-SRL-HV.pdf'))
