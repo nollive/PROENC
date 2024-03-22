@@ -1497,7 +1497,7 @@ Danger_gene_names_CSA_SRL <-  filter(full_results_CSA_SRL,GENE_SYMBOL %in% Dange
 
 
 #Affichage
-Danger_gene_matrix_CSA_SRL <- cbind(data_CSA, data_HV)[Danger_ids_of_interest_CSA_SRL,]
+Danger_gene_matrix_CSA_SRL <- cbind(data_CSA, data_SRL)[Danger_ids_of_interest_CSA_SRL,]
 write.csv(x = Danger_gene_matrix_CSA_SRL, file=paste0(my_id,"_filtered_results_CSA_SRL_6_genes.csv"))
 
 
